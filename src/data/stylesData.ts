@@ -1,0 +1,365 @@
+/**
+ * Comprehensive Tattoo Style Definitions
+ * Complete architectural library supporting all major contemporary and historical styles.
+ */
+
+import { TattooStyleDefinition } from '../types';
+
+export const TATTOO_STYLES: Record<string, TattooStyleDefinition> = {
+  style_fine_line: {
+    id: 'style_fine_line',
+    name: 'Fine Line',
+    family: 'Contemporary Minimalist',
+    description: 'Hassas, saç teli inceliğinde konturlar, yüksek zarafet ve hafif nefes alan negatif alan.',
+    lineWeight: '0.25mm - 0.35mm ultra ince tek iğne konturları',
+    shading: 'Mikro nokta geçişleri (soft stippling) veya sıfır gölgeleme',
+    contrastRatio: 'Hafif / Orta kontrast; ten açıklığı ön planda',
+    detailDensity: 'Yüksek mikroskobik incelik, ferah kompozisyon',
+    negativeSpaceTarget: '%50 - %65 açık ten alanı',
+    skinSuitability: 'İnce derili bölgelerde ustalık gerektirir; derinliğin milimetrik kontrolü şarttır.',
+    antiBlowoutGuidelines: 'Düşük voltaj, 1RL veya 3RL sıkı dizilim iğne, kontrollü penetrasyon açısı.',
+    compositionPhilosophy: 'Fazlalıklardan arındırılmış, nefes alan, çizgisel zarafet ve boşluğun gücü.',
+    visualVocabulary: ['ultra-delicate fine line', 'subtle single needle contour', 'airy negative space', 'hairline precision', 'minimalist aesthetic'],
+    recommendedNeedles: ['1RL (0.25mm)', '3RL (0.30mm tight)']
+  },
+
+  style_single_needle: {
+    id: 'style_single_needle',
+    name: 'Single Needle',
+    family: 'Contemporary Micro Art',
+    description: 'Tek bir iğne ucuyla yapılan mikro gravür hassasiyetinde mücevher gibi dövmeler.',
+    lineWeight: '0.20mm - 0.25mm jilet keskinliğinde mikro hatlar',
+    shading: 'Tüy hafifliğinde gri yıkama (greywash) ve mikro tonlamalar',
+    contrastRatio: 'Zarif ton geçişleri, pürüzsüz gradyanlar',
+    detailDensity: 'Maksimum mikro detay',
+    negativeSpaceTarget: '%45 - %55 dengeli negatif alan',
+    skinSuitability: 'Güneşe az maruz kalan, gergin ve pürüzsüz ten bölgelerinde en uzun ömürlüdür.',
+    antiBlowoutGuidelines: 'Tek iğnenin deriyi kesmemesi için el hızı ile makine devri mükemmel senkronize olmalı.',
+    compositionPhilosophy: 'Mikro ölçekte devasa anlatım gücü ve mücevher parlaklığı.',
+    visualVocabulary: ['single needle masterwork', 'micro engraving precision', 'featherlight greywash', 'museum quality etching', 'crisp micro linework'],
+    recommendedNeedles: ['1RL (0.20mm bugpin)']
+  },
+
+  style_micro_realism: {
+    id: 'style_micro_realism',
+    name: 'Micro Realism',
+    family: 'Contemporary Realism',
+    description: 'Küçük ölçekte olağanüstü fotoğrafik detay, pürüzsüz gölgelendirme ve hiper-detay.',
+    lineWeight: 'Hemen hemen görünmez kontur; kenarlar sadece ton değerleriyle tanımlanır',
+    shading: 'Yumuşak fotogerçekçi gri yıkama ve mikro kontrast',
+    contrastRatio: 'Tam ton aralığı (beyaz ışıltıdan derin siyah gölgeye)',
+    detailDensity: 'Yoğun fotogerçekçi doku',
+    negativeSpaceTarget: '%35 - %45',
+    skinSuitability: 'Geniş düz alanlar ve minimum sürtünme olan bölgeler tavsiye edilir.',
+    antiBlowoutGuidelines: 'Kontur yerine yumuşak magnum süpürmeleri ve mikro ton katmanlaması.',
+    compositionPhilosophy: 'Ruhun minyatür bir aynası gibi işlenen fotoğrafik gerçeklik.',
+    visualVocabulary: ['hyper-detailed micro realism', 'photographic fidelity', 'seamless tonal transitions', 'soft focus ambient lighting', 'lifelike texture'],
+    recommendedNeedles: ['3RL', '5M1 curved magnum', '7RM bugpin']
+  },
+
+  style_black_and_grey: {
+    id: 'style_black_and_grey',
+    name: 'Black & Grey Realism',
+    family: 'Realism & Chicano Legacy',
+    description: 'Klasik seyreltilmiş siyah mürekkep katmanları, heykelsi gölgeler ve dramatik ışık.',
+    lineWeight: 'Gerektiğinde yumuşak yapısal konturlar, gölgeyle eriyen kenarlar',
+    shading: 'Çok katmanlı klasik greywash (açık, orta, koyu ton solüsyonları)',
+    contrastRatio: 'Yüksek ve dramatik chiaroscuro ışık-gölge karşıtlığı',
+    detailDensity: 'Derin heykelsi dokular ve hacim',
+    negativeSpaceTarget: '%35 - %45',
+    skinSuitability: 'Tüm ten tipleri için en dayanıklı ve zamana en iyi direnen stillerden biri.',
+    antiBlowoutGuidelines: 'Derin pigment birikmesinden kaçınarak katman katman gölgeleme.',
+    compositionPhilosophy: 'Rönesans heykeli veya klasik kara kalem portre disiplini.',
+    visualVocabulary: ['masterful black and grey realism', 'dramatic chiaroscuro lighting', 'sculptural volume', 'smooth gradient greywash', 'high depth contrast'],
+    recommendedNeedles: ['3RL', '7RL', '9RM curved magnum', '15RM']
+  },
+
+  style_blackwork: {
+    id: 'style_blackwork',
+    name: 'Blackwork',
+    family: 'Heavy Contrast & Graphic',
+    description: 'Yoğun saf siyah alanlar, kalın ve net grafik hatlar, cesur geometri ve yüksek görsel güç.',
+    lineWeight: '0.8mm - 2.0mm kalın, kararlı ve doygun çizgiler',
+    shading: 'Sert opak siyah bloklar, whip shading veya negatif alan ayrımı',
+    contrastRatio: 'Maksimum kontrast (tamamen opak siyah ile saf ten rengi)',
+    detailDensity: 'Grafiksel ve net formlar; karmaşadan uzak',
+    negativeSpaceTarget: '%40 - %50 güçlü negatif alan pencereleri',
+    skinSuitability: 'Güneşe ve yaşlanmaya en dayanıklı stil; 30 yıl sonra bile okunabilir kalır.',
+    antiBlowoutGuidelines: 'Büyük iğne gruplarıyla (round shader / magnum) homojen doygunluk, tek geçişte temiz pigmentasyon.',
+    compositionPhilosophy: 'Tenin anatomisini cesur bir siyah grafik zırh gibi yeniden şekillendirme.',
+    visualVocabulary: ['bold saturated blackwork', 'heavy black fills', 'stark high contrast', 'monolithic graphic shapes', 'powerful silhouettes'],
+    recommendedNeedles: ['7RL', '9RL', '11RS', '15M1', '25M1']
+  },
+
+  style_geometric: {
+    id: 'style_geometric',
+    name: 'Geometric',
+    family: 'Structure & Precision',
+    description: 'Matematiksel açılar, düz çizgiler, çokgenler ve mimari kompozisyon nizamı.',
+    lineWeight: '0.4mm - 0.8mm kusursuz cetvel düzgünlüğünde teknik çizgiler',
+    shading: 'Noktalama (dotwork) gradyanları veya temiz çizgi taramaları (hatching)',
+    contrastRatio: 'Yüksek netlik ve mimari keskinlik',
+    detailDensity: 'Matematiksel karmaşıklık, düzenli ritim',
+    negativeSpaceTarget: '%45 - %55',
+    skinSuitability: 'Kas kıvrımlarının geometriyi bükmemesi için doğru vücut anatomisi seçimi kritiktir.',
+    antiBlowoutGuidelines: 'Tutarlı el hızı ve titreşimsiz açı hakimiyeti.',
+    compositionPhilosophy: 'Kaosun içinde gizlenen ilahi matematiksel düzenin ten üzerinde tezahürü.',
+    visualVocabulary: ['pure geometric composition', 'mathematical precision linework', 'architectural vectors', 'sharp polyhedral angles', 'flawless alignment'],
+    recommendedNeedles: ['3RL', '5RL', '7RL']
+  },
+
+  style_sacred_geometry: {
+    id: 'style_sacred_geometry',
+    name: 'Sacred Geometry',
+    family: 'Structure & Precision',
+    description: 'Yaşam Çiçeği, Metatron Küpü, Platonik cisimler ve altın oran sarmallarının kutsal uyumu.',
+    lineWeight: '0.3mm - 0.6mm hassas kutsal oran çizgileri',
+    shading: 'Mikro dotwork gradyanları ve frekans dalgalanmaları',
+    contrastRatio: 'Dengeli ve meditatif tonlama',
+    detailDensity: 'Çok katmanlı fraktal matrisler',
+    negativeSpaceTarget: '%40 - %50',
+    skinSuitability: 'Düzlem yüzeyler (sırt, göğüs, önkol, uyluk) geometrinin simetrisini en iyi korur.',
+    antiBlowoutGuidelines: 'Kesişim noktalarında pigment birikimini önlemek için hafif dokunuş.',
+    compositionPhilosophy: 'Evrenin kozmik şablonuyla rezone olan kutsal portal tasarımı.',
+    visualVocabulary: ['sacred geometry matrix', 'flower of life patterns', 'platonic solid projections', 'golden ratio spirals', 'metatron cube harmonics', 'spiritual geometry'],
+    recommendedNeedles: ['3RL', '5RL', '7RS dotwork']
+  },
+
+  style_dotwork: {
+    id: 'style_dotwork',
+    name: 'Dotwork & Pointillism',
+    family: 'Stippling & Texture',
+    description: 'Yalnızca milyonlarca tekil noktanın yoğunluğuyla oluşturulan hipnotik tonlar ve formlar.',
+    lineWeight: 'Çizgi yerine nokta dizilimleri (stippling)',
+    shading: 'Nokta sıklığı ile yaratılan saf gradyanlar (açıktan koyuya)',
+    contrastRatio: 'Zarif, kadifemsi ve yumuşak geçişler',
+    detailDensity: 'Yüksek mikroskobik doku',
+    negativeSpaceTarget: '%45 - %60 ferah ten nefesi',
+    skinSuitability: 'Yaşlanırken en doğal ve estetik solan stillerden biridir.',
+    antiBlowoutGuidelines: 'Tek tek nokta vuruşlarında deriyi aşırı travmatize etmemek.',
+    compositionPhilosophy: 'Evrendeki her atomun bir araya gelerek tek bir formu oluşturması hissi.',
+    visualVocabulary: ['intricate dotwork stippling', 'pointillism shading', 'velvet dot gradients', 'hypnotic stipple texture', 'meditative dot shading'],
+    recommendedNeedles: ['3RL', '5RL', '7RL slow whip']
+  },
+
+  style_ornamental: {
+    id: 'style_ornamental',
+    name: 'Ornamental & Filigree',
+    family: 'Decorative & Anatomical Flow',
+    description: 'Vücudun doğal kas kıvrımlarını saran dantel, filigran, saray motifleri ve mücevher akışları.',
+    lineWeight: '0.35mm - 0.7mm akışkan kavisli hatlar ve damla uçları',
+    shading: 'Hafif whip shading ve kenar konturları',
+    contrastRatio: 'Orta / Yüksek; vücudu bir zırh veya taç gibi süsler',
+    detailDensity: 'Ritmik, tekrarlayan ve nefes alan bezemeler',
+    negativeSpaceTarget: '%50 - %60 geniş negatif pencereler',
+    skinSuitability: 'Köprücük kemiği, sternum, omurga, uyluk ve kol sarmalarında kusursuz durur.',
+    antiBlowoutGuidelines: 'Kavislerin birleştiği dar açılarda çizgi kalınlığının homojen kalması.',
+    compositionPhilosophy: 'Bedenin kendi hatlarını bir sanat eseri olarak giydiren kutsal zarafet.',
+    visualVocabulary: ['ornamental body adornment', 'delicate filigree lace', 'anatomical flow curves', 'mandala jewelry accents', 'regal decorative flourishes'],
+    recommendedNeedles: ['3RL', '5RL', '7RL']
+  },
+
+  style_mandala: {
+    id: 'style_mandala',
+    name: 'Mandala',
+    family: 'Decorative & Meditative',
+    description: 'Merkezden çevreye doğru 360 derece açılan, ruhsal bütünlüğü temsil eden kutsal çemberler.',
+    lineWeight: '0.4mm - 0.7mm simetrik radyal konturlar',
+    shading: 'Dotwork geçişleri ve hafif blok dolgular',
+    contrastRatio: 'Merkezden dışa doğru nefes alan dengeli tonlama',
+    detailDensity: 'Radyal simetrik katmanlar',
+    negativeSpaceTarget: '%45 - %55',
+    skinSuitability: 'Dirsek, diz kapağı, göğüs merkezi veya sırt ortasında mükemmel odak oluşturur.',
+    antiBlowoutGuidelines: 'Radyal açılarda milimetrik şablon hizalaması.',
+    compositionPhilosophy: 'Kişinin içsel merkezine dönüşünü ve evrensel ahengini simgeleyen meditatif çember.',
+    visualVocabulary: ['sacred circular mandala', 'radial symmetry', 'meditative repeating petals', 'dotwork shading gradient', 'concentric spiritual circles'],
+    recommendedNeedles: ['3RL', '5RL', '7RL']
+  },
+
+  style_neo_traditional: {
+    id: 'style_neo_traditional',
+    name: 'Neo Traditional',
+    family: 'Illustrated Heritage',
+    description: 'Geleneksel dövmenin cesur çizgilerini çağdaş derinlik, zengin renk ve Art Nouveau zarafetiyle buluşturur.',
+    lineWeight: 'Çeşitlendirilmiş çizgi hiyerarşisi (dışta kalın 1.2mm, iç detaylarda ince 0.5mm)',
+    shading: 'Pürüzsüz çok renkli veya greywash geçişleri, hacimli dolgular',
+    contrastRatio: 'Yüksek ve vurucu kontrast',
+    detailDensity: 'Zengin dokular, göz alıcı organik motifler',
+    negativeSpaceTarget: '%30 - %40',
+    skinSuitability: 'Tüm vücut bölgelerinde mükemmel görünür ve yıllarca canlılığını korur.',
+    antiBlowoutGuidelines: 'Dış konturlar net bir iğne vuruşuyla tek seferde çekilir.',
+    compositionPhilosophy: 'Klasik dövme ruhunun modern illüstrasyon ve Art Nouveau estetiğiyle yeniden doğuşu.',
+    visualVocabulary: ['neo traditional tattoo', 'dynamic line weight hierarchy', 'art nouveau flourishes', 'rich dimensional shading', 'illustrative elegance'],
+    recommendedNeedles: ['7RL', '9RL', '9M1', '11RM']
+  },
+
+  style_traditional_american: {
+    id: 'style_traditional_american',
+    name: 'Traditional / American Traditional',
+    family: 'Bold Heritage (Old School)',
+    description: 'Kalın simsiyah konturlar, sınırlı renk paleti (sarı, kırmızı, yeşil, siyah) ve zamansız ikonlar.',
+    lineWeight: '1.0mm - 1.8mm sarsılmaz, kalın ve cesur hatlar',
+    shading: 'Whip shading ve klasik derin siyah süpürmeler',
+    contrastRatio: 'Maksimum kontrast ve yüksek okunabilirlik',
+    detailDensity: 'Basit, ikonik ve 10 metreden anlaşılan net formlar',
+    negativeSpaceTarget: '%35 - %45',
+    skinSuitability: 'Deride en uzun ömürlü ve zamana meydan okuyan stillerin başında gelir.',
+    antiBlowoutGuidelines: 'Derin, tok ve tek hamlede temiz kontur.',
+    compositionPhilosophy: 'Gösterişten uzak, cesur, dürüst ve ölümsüz denizci/klasik dövme mirası.',
+    visualVocabulary: ['bold traditional american tattoo', 'heavy black outlines', 'classic whip shading', 'timeless old school iconography', 'iconic bold simplicity'],
+    recommendedNeedles: ['8RL', '9RL', '11RS', '9M1']
+  },
+
+  style_japanese_irezumi: {
+    id: 'style_japanese_irezumi',
+    name: 'Japanese / Irezumi',
+    family: 'Eastern Heritage',
+    description: 'Girdaplar, rüzgar dalgaları, kiraz çiçekleri, ejderhalar ve bedeni saran epik anlatı.',
+    lineWeight: '0.8mm - 1.5mm güçlü, dinamik fırça hissi veren çizgiler',
+    shading: 'Gokobori / Bokashi geleneksel siyah-gri degradeler ve mikiri arka planları',
+    contrastRatio: 'Yüksek kontrast; dalgaların ve bulutların arkasından parlayan ana figür',
+    detailDensity: 'Geniş ölçekli, bütünsel beden kaplaması',
+    negativeSpaceTarget: '%25 - %35',
+    skinSuitability: 'Kol, bacak veya tam sırt gibi geniş akışkan yüzeylerde hayat bulur.',
+    antiBlowoutGuidelines: 'Geniş magnumlarla pürüzsüz ve homojen gradyanlar.',
+    compositionPhilosophy: 'İnsan bedenini yaşayan bir efsaneye dönüştüren akışkan doğa mitolojisi.',
+    visualVocabulary: ['authentic japanese irezumi', 'mikiri background waves', 'wind bars and stylized water spirals', 'powerful brush dynamics', 'oriental mythological composition'],
+    recommendedNeedles: ['7RL', '9RL', '15RM', '25M1']
+  },
+
+  style_sketch: {
+    id: 'style_sketch',
+    name: 'Sketch & Dynamic Draft',
+    family: 'Expressive & Contemporary',
+    description: 'Eskiz defterinden fırlamış gibi duran serbest çizgiler, dinamik arayış hatları ve spontane enerji.',
+    lineWeight: 'İnceli kalınlı, üst üste binen çok katmanlı kılavuz çizgileri',
+    shading: 'Hızlı tarama (cross-hatching), grafit dokusu ve fırça lekeleri',
+    contrastRatio: 'Dinamik orta kontrast; çizimin ham yaratım sürecini sergiler',
+    detailDensity: 'Organik, anlık ve tamamlanmamışlığın şiirsel güzelliği',
+    negativeSpaceTarget: '%50 - %60',
+    skinSuitability: 'Önkol, bacak ve omuz gibi hareketli kas yüzeylerinde enerjisi artar.',
+    antiBlowoutGuidelines: 'Üst üste binen çizgilerin deriyi yıpratmaması için düşük baskı.',
+    compositionPhilosophy: 'Sanatçının zihnindeki ilk yaratım kıvılcımını donduran canlı dinamizm.',
+    visualVocabulary: ['expressive sketch style tattoo', 'dynamic draft lines', 'pencil hatching texture', 'artistic raw linework', 'gestural energy and cross-hatching'],
+    recommendedNeedles: ['3RL', '5RL', '7RS']
+  },
+
+  style_etching_engraving: {
+    id: 'style_etching_engraving',
+    name: 'Etching / Woodcut Engraving',
+    family: 'Historical Printmaking',
+    description: '16. yüzyıl gravür baskılarını andıran paralel taramalar, çapraz çizgiler ve tarihi doku.',
+    lineWeight: '0.3mm - 0.5mm düzenli, kontrollü ve keskin bakır plaka çizgileri',
+    shading: 'Sadece çizgi sıklığıyla (hatching / cross-hatching) yaratılan gölgeler',
+    contrastRatio: 'Yüksek; beyaz ten ile saf siyah mürekkebin asil buluşması',
+    detailDensity: 'Antik simya veya botanik el yazması yoğunluğu',
+    negativeSpaceTarget: '%40 - %50',
+    skinSuitability: 'Düzgün ve gergin yüzeylerde gravür çizgileri yıllarca berrak kalır.',
+    antiBlowoutGuidelines: 'Çizgi aralıklarının yaşlanmayla birbirine kaynamaması için en az 0.8mm ara bırakılmalı.',
+    compositionPhilosophy: 'Kadim kitapların ve simyacı gravürlerinin ten üzerinde ölümsüzleşmesi.',
+    visualVocabulary: ['antique woodcut engraving', 'medieval copperplate etching', 'precise cross-hatching lines', 'alchemical manuscript style', 'vintage printed bookplate texture'],
+    recommendedNeedles: ['3RL', '5RL tight']
+  },
+
+  style_whip_shading: {
+    id: 'style_whip_shading',
+    name: 'Whip Shading & Pepper Shading',
+    family: 'Textured Shading',
+    description: 'İğnenin kamçı hareketiyle deriden çekilmesiyle oluşan bibersi, pütürlü ve dinamik gölgeler.',
+    lineWeight: 'Net yapısal konturlar eşliğinde granüllü gölge uçuşları',
+    shading: 'Whip stippling (biber gölgeleme), noktasal dağılım',
+    contrastRatio: 'Yüksek ve dokulu kontrast',
+    detailDensity: 'Dokusal ve zengin',
+    negativeSpaceTarget: '%45 - %55',
+    skinSuitability: 'Hemen her anatomik bölgede mükemmel sonuç verir.',
+    antiBlowoutGuidelines: 'İğne çıkış açısı ve bilek hızının kamçı hareketine tam uyumu.',
+    compositionPhilosophy: 'Klasik gölgenin tekdüzeliğini kırıp tene elle dokunulmuş organik bir doku kazandırma.',
+    visualVocabulary: ['dynamic whip shading', 'textured pepper shading', 'directional stippling spray', 'gradient stipple fade', 'handcrafted whip texture'],
+    recommendedNeedles: ['3RL', '5RL', '7RS', '7RM']
+  },
+
+  style_trash_polka: {
+    id: 'style_trash_polka',
+    name: 'Trash Polka',
+    family: 'Avant-Garde Realistic',
+    description: 'Fotogerçekçi siyah-gri öğeler ile kaotik kırmızı fırça darbeleri, tipografi ve soyut kolaj.',
+    lineWeight: 'Aşırı çeşitlilik: ince yazı hatlarından devasa kalın siyah bantlara kadar',
+    shading: 'Derin fotogerçekçi gölgeler + ham kan kırmızısı sıçramalar',
+    contrastRatio: 'Aşırı yüksek ve agresif kontrast',
+    detailDensity: 'Katmanlı kaotik kolaj',
+    negativeSpaceTarget: '%30 - %45',
+    skinSuitability: 'Geniş göğüs, sırt veya uyluk alanlarında konsept tam oturur.',
+    antiBlowoutGuidelines: 'Kırmızı pigmentin alerji riski göz önünde bulundurulmalı; yüksek kaliteli organik kırmızı pigment.',
+    compositionPhilosophy: 'Uyum ile kaosun, geçmiş ile geleceğin, düzen ile kargaşanın çarpışması.',
+    visualVocabulary: ['avant-garde trash polka', 'photorealistic elements colliding with bold red brushstrokes', 'grunge splatters and stencil typography', 'aggressive graphic juxtaposition'],
+    recommendedNeedles: ['3RL', '9RL', '15M1', '25M1']
+  },
+
+  style_watercolor: {
+    id: 'style_watercolor',
+    name: 'Watercolor & Ink Wash',
+    family: 'Painterly & Fluid',
+    description: 'Sulu boya lekeleri, su damlaları, transparan renk akışları ve sınır tanımayan şiirsel tonlar.',
+    lineWeight: 'Minimalist veya silik konturlar; formlar renk geçişleriyle oluşur',
+    shading: 'Çok katmanlı şeffaf pigment yıkaması ve sıçramalar',
+    contrastRatio: 'Yumuşak ve pastel; ten üzerinde eriyen tonlar',
+    detailDensity: 'Akışkan, serbest ve lekesel',
+    negativeSpaceTarget: '%45 - %60',
+    skinSuitability: 'Güneş koruması gerektirir; açık tenlerde renkler ışıldar.',
+    antiBlowoutGuidelines: 'Kontursuz renklerin zamanla dağılmaması için içeride ince yapısal siyah iskelet gizlenmeli.',
+    compositionPhilosophy: 'Teni bir tuval gibi kullanarak duyguların sıvı halini resmetme.',
+    visualVocabulary: ['fluid watercolor tattoo', 'translucent ink wash drips', 'splattered pigment bloom', 'soft pastel color transitions', 'delicate painterly bleeds'],
+    recommendedNeedles: ['3RL', '7RS', '9RM curved magnum']
+  },
+
+  style_tribal_polynesian: {
+    id: 'style_tribal_polynesian',
+    name: 'Polynesian / Maori / Tribal',
+    family: 'Indigenous Sacred Ink',
+    description: 'Kadim kabile sembolleri, koruyucu dövme zırhı (Tiki, Enata, Koru), sarsılmaz siyah ritimler.',
+    lineWeight: '1.0mm - 2.5mm kalın, ritmik ve kusursuz geometri',
+    shading: 'Tamamen opak siyah dolgular ve negatif alan çizgileri',
+    contrastRatio: 'Mutlak kontrast',
+    detailDensity: 'Kültürel sembollerin ritmik dokuması',
+    negativeSpaceTarget: '%35 - %45',
+    skinSuitability: 'Omuz, pazu, göğüs ve bacak kaslarının anatomik yönüyle mükemmel bütünleşir.',
+    antiBlowoutGuidelines: 'Eşit derinlikte geniş magnum dolgusu.',
+    compositionPhilosophy: 'Savaşçının soy ağacını, koruyucu zırhını ve ruhsal gücünü taşıyan kadim dil.',
+    visualVocabulary: ['authentic polynesian tribal', 'sacred maori koru spirals', 'heavy black geometrical bands', 'protective armor flow', 'indigenous pacific iconography'],
+    recommendedNeedles: ['9RL', '11RS', '15M1', '25M1']
+  },
+
+  style_dark_art_gothic: {
+    id: 'style_dark_art_gothic',
+    name: 'Dark Art & Gothic Blackwork',
+    family: 'Occult & Macabre',
+    description: 'Karanlık mistisizm, gotik katedraller, tekinsiz heykeller, gölge varlıklar ve derin siyahlık.',
+    lineWeight: 'Keskin, gotik kemerleri andıran mimari hatlar ve gölgeyle eriyen konturlar',
+    shading: 'Yoğun karanlık, derin siyah kuyular ve tekinsiz ışık pırıltıları',
+    contrastRatio: 'Dramatik ve hipnotik karanlık',
+    detailDensity: 'Zengin, karanlık ve dokulu',
+    negativeSpaceTarget: '%30 - %40',
+    skinSuitability: 'Uzun ömürlü ve zamana karşı en dayanıklı kompozisyonlardan biri.',
+    antiBlowoutGuidelines: 'Siyah dolguların temiz sınırlarla oturması.',
+    compositionPhilosophy: 'Bilinçaltının gölgelerini yüce bir estetikle onurlandırma.',
+    visualVocabulary: ['atmospheric dark art', 'gothic blackwork mysticism', 'haunting sculptural shadows', 'chthonic occult aesthetics', 'deep pitch-black contrasts'],
+    recommendedNeedles: ['5RL', '9RL', '11RM', '15M1']
+  },
+
+  style_abstract_contemporary: {
+    id: 'style_abstract_contemporary',
+    name: 'Abstract & Contemporary Experimental',
+    family: 'Contemporary Avant-Garde',
+    description: 'Serbest formlar, fırça darbeleri, fütüristik vektörler, negatif alan heykelleri ve kuralsız özgürlük.',
+    lineWeight: 'Öngörülemez; tek bir saç telinden devasa bir kömür darbesine kadar',
+    shading: 'Serbest doku, sıçrama ve transparanlık',
+    contrastRatio: 'Sanatsal ve değişken',
+    detailDensity: 'Minimalist boşluktan yoğun kaosa kadar',
+    negativeSpaceTarget: '%50 - %70',
+    skinSuitability: 'Tüm beden anatomisini özgür bir heykel alanı olarak kullanır.',
+    antiBlowoutGuidelines: 'Çizgi kalınlığı geçişlerinde makine hızının kontrollü ayarı.',
+    compositionPhilosophy: 'Geleneksel figürasyonun ötesine geçip saf duygu ve enerji akışını görünür kılmak.',
+    visualVocabulary: ['contemporary abstract tattoo', 'experimental avant-garde linework', 'gestural brushstrokes', 'negative space sculptural flow', 'modern fine art aesthetic'],
+    recommendedNeedles: ['3RL', '7RL', '11RS', '15RM']
+  }
+};

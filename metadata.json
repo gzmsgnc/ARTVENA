@@ -1,0 +1,6 @@
+{
+  "name": "Dövme Tasarım Asistanı V2",
+  "description": "Kişisel analiz, sembolik sentez, dövme reçetesi ve profesyonel prompt üretim sistemi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
