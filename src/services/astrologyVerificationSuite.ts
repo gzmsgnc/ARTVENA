@@ -1177,6 +1177,98 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
       notice: resUncertainClient.astronomicalAudit?.timePrecision.uncertaintyNotice
     }
   });
+
+  // =========================================================================
+  // DÜZELTME 2: DOĞUM SAATİ BİLİNMİYOR SEÇENEĞİ VE DİNAMİK SAAT DEĞİŞİMİ TESTLERİ
+  // =========================================================================
+
+  // SENARYO 39 (Saat Biliniyor): Danışan gerçek doğum saatini girdiğinde (örn. 08:30)
+  // 12.00 varsayımı kullanılmamalı; girilen saat ve dakika (08:30) hesaba katılmalıdır.
+  const resTimeKnown = calculateAstrology('1995-06-15', '08:30', 'İstanbul', {
+    isBirthTimeUnknown: false
+  });
+  const s39Passed =
+    resTimeKnown.astronomicalAudit?.timePrecision.birthTimeProvided === true &&
+    resTimeKnown.astronomicalAudit?.timePrecision.isDefaultNoonAssumed === false &&
+    resTimeKnown.ascendantCoordinates !== undefined &&
+    resTimeKnown.ascendantEstimate !== 'Belirsiz' &&
+    resTimeKnown.houses?.length === 12 &&
+    resTimeKnown.astronomicalAudit?.timePrecision.uncertaintyNotice === undefined;
+  results.push({
+    id: 'astro_scen_39',
+    name: '39. Saat Biliniyor: Manuel Saat Girişinde (08:30) 12.00 Varsayımının Kullanılmaması ve Kesin Hesaplama',
+    passed: s39Passed,
+    message: s39Passed
+      ? 'Başarılı: Manuel doğum saati (08:30) başarıyla kullanıldı; varsayılan 12.00 devredışı kaldı ve kesin ASC/evler üretildi.'
+      : 'Hata: Manuel saat girilmesine rağmen varsayılan 12.00 kullanıldı veya belirsizlik bildirildi!',
+    auditDetails: {
+      birthTimeProvided: resTimeKnown.astronomicalAudit?.timePrecision.birthTimeProvided,
+      isDefaultNoonAssumed: resTimeKnown.astronomicalAudit?.timePrecision.isDefaultNoonAssumed,
+      asc: resTimeKnown.ascendantCoordinates?.formatted,
+      sign: resTimeKnown.ascendantEstimate
+    }
+  });
+
+  // SENARYO 40 (Saat Bilinmiyor): 'Doğum saatimi bilmiyorum' seçildiğinde sistemin 12.00 ile hesaplaması;
+  // Ancak kesin kabul etmeyip Yükselen/Evleri belirsiz göstermesi ve gezegenleri doğru hesaplaması.
+  const resTimeUnknown = calculateAstrology('1995-06-15', '12:00', 'İstanbul', {
+    isBirthTimeUnknown: true
+  });
+  const s40Passed =
+    resTimeUnknown.astronomicalAudit?.timePrecision.birthTimeProvided === false &&
+    resTimeUnknown.astronomicalAudit?.timePrecision.isDefaultNoonAssumed === true &&
+    resTimeUnknown.ascendantEstimate === 'Belirsiz' &&
+    resTimeUnknown.ascendantCoordinates === undefined &&
+    resTimeUnknown.houses === undefined &&
+    resTimeUnknown.sunSign === 'İkizler' && // Saatten bağımsız gezegenler başarıyla hesaplanır
+    resTimeUnknown.planets?.length === 10 &&
+    typeof resTimeUnknown.astronomicalAudit?.timePrecision.uncertaintyNotice === 'string' &&
+    resTimeUnknown.astronomicalAudit.timePrecision.uncertaintyNotice.includes('12.00 (öğlen) varsayımıyla');
+  results.push({
+    id: 'astro_scen_40',
+    name: '40. Saat Bilinmiyor: 12.00 (Öğlen) Varsayımıyla Hesaplama, Kesinlik Uydurmama ve Gezegen Güvenliği',
+    passed: s40Passed,
+    message: s40Passed
+      ? 'Başarılı: Doğum saati bilinmiyor seçildiğinde 12.00 referansı kullanıldı; ASC/evler kesin gösterilmedi, gezegenler korundu.'
+      : 'Hata: Saat bilinmiyor seçildiğinde kesin yükselen üretildi veya 12.00 varsayımı kaydedilmedi!',
+    auditDetails: {
+      birthTimeProvided: resTimeUnknown.astronomicalAudit?.timePrecision.birthTimeProvided,
+      isDefaultNoonAssumed: resTimeUnknown.astronomicalAudit?.timePrecision.isDefaultNoonAssumed,
+      ascEstimate: resTimeUnknown.ascendantEstimate,
+      sunSign: resTimeUnknown.sunSign,
+      notice: resTimeUnknown.astronomicalAudit?.timePrecision.uncertaintyNotice
+    }
+  });
+
+  // SENARYO 41 (Saat Sonradan Değiştiriliyor): Danışan önce 'saat bilinmiyor' ile hesaplayıp
+  // ardından gerçek saatini (örn: 22:15) girdiğinde haritanın 12.00 varsayımından tam kesin haritaya dinamik geçişi.
+  const step1Unknown = calculateAstrology('1995-06-15', '12:00', 'İstanbul', { isBirthTimeUnknown: true });
+  const step2Updated = calculateAstrology('1995-06-15', '22:15', 'İstanbul', { isBirthTimeUnknown: false });
+  const s41Passed =
+    step1Unknown.astronomicalAudit?.timePrecision.isDefaultNoonAssumed === true &&
+    step1Unknown.ascendantEstimate === 'Belirsiz' &&
+    step2Updated.astronomicalAudit?.timePrecision.isDefaultNoonAssumed === false &&
+    step2Updated.astronomicalAudit?.timePrecision.birthTimeProvided === true &&
+    step2Updated.ascendantEstimate !== 'Belirsiz' &&
+    step2Updated.ascendantCoordinates !== undefined &&
+    step2Updated.houses?.length === 12 &&
+    // Güneş boylamı aynı gün içinde sabit veya çok yakın kalırken, Yükselen burç kesinleşir:
+    step1Unknown.sunSign === step2Updated.sunSign;
+  results.push({
+    id: 'astro_scen_41',
+    name: '41. Saat Sonradan Değiştiriliyor: Bilinmiyor (12.00) Durumundan Kesin Saate (22:15) Geçiş Dinamizmi',
+    passed: s41Passed,
+    message: s41Passed
+      ? 'Başarılı: Saat bilinmiyor durumundan manuel saate geçildiğinde 12.00 varsayımı iptal edildi ve kesin harita üretildi.'
+      : 'Hata: Saat sonradan değiştirildiğinde 12.00 varsayımı temizlenemedi!',
+    auditDetails: {
+      step1Assumed: step1Unknown.astronomicalAudit?.timePrecision.isDefaultNoonAssumed,
+      step1Asc: step1Unknown.ascendantEstimate,
+      step2Assumed: step2Updated.astronomicalAudit?.timePrecision.isDefaultNoonAssumed,
+      step2Asc: step2Updated.ascendantCoordinates?.formatted,
+      step2Sign: step2Updated.ascendantEstimate
+    }
+  });
   return results;
 }
 

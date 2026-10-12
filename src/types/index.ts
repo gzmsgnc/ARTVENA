@@ -8,6 +8,7 @@ export interface ClientData {
   lastName: string;
   birthDate: string; // YYYY-MM-DD
   birthTime: string; // HH:mm
+  isBirthTimeUnknown?: boolean;
   birthPlace: string;
   motherName: string; // Strictly only for Ebced calculation; NEVER included in prompt or tattoo symbols
   phone: string;
@@ -113,6 +114,7 @@ export interface AstrologyAstronomicalAudit {
   };
   timePrecision: {
     birthTimeProvided: boolean;
+    isDefaultNoonAssumed?: boolean;
     hasExactAscendant: boolean;
     uncertaintyNotice?: string;
     isNonExistentTime?: boolean;

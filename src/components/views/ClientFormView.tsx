@@ -18,6 +18,7 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
   const [lastName, setLastName] = useState(initialData?.lastName || '');
   const [birthDate, setBirthDate] = useState(initialData?.birthDate || '1995-06-15');
   const [birthTime, setBirthTime] = useState(initialData?.birthTime || '14:30');
+  const [isBirthTimeUnknown, setIsBirthTimeUnknown] = useState<boolean>(initialData?.isBirthTimeUnknown || false);
   const [birthPlace, setBirthPlace] = useState(initialData?.birthPlace || 'İstanbul');
   const [motherName, setMotherName] = useState(initialData?.motherName || '');
   const preferredAstrologySystem = 'Tropikal Zodyak (Tropical)' as const;
@@ -97,7 +98,7 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
       if (isNaN(d.getTime())) errs.birthDate = 'Geçerli bir tarih giriniz.';
     }
 
-    if (birthTime && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(birthTime)) {
+    if (!isBirthTimeUnknown && birthTime && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(birthTime)) {
       errs.birthTime = 'Saat formatı SS:DD (örn: 14:30) olmalıdır.';
     }
 
@@ -118,7 +119,8 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       birthDate,
-      birthTime,
+      birthTime: isBirthTimeUnknown ? '12:00' : birthTime,
+      isBirthTimeUnknown,
       birthPlace: birthPlace.trim(),
       motherName: motherName.trim(),
       preferredAstrologySystem,
@@ -198,17 +200,47 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Doğum Saati (Yükselen için)</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Doğum Saati (Yükselen için)</span>
+              </label>
+              <label className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-amber-300 cursor-pointer select-none transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isBirthTimeUnknown}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setIsBirthTimeUnknown(checked);
+                    if (checked) {
+                      setBirthTime('12:00');
+                    } else if (birthTime === '12:00') {
+                      setBirthTime('14:30');
+                    }
+                  }}
+                  className="w-3.5 h-3.5 rounded border-slate-700 text-amber-500 focus:ring-amber-400 focus:ring-offset-slate-950 bg-slate-900 cursor-pointer"
+                />
+                <span>Doğum saatimi bilmiyorum</span>
+              </label>
+            </div>
             <input
               type="time"
-              value={birthTime}
+              value={isBirthTimeUnknown ? '12:00' : birthTime}
+              disabled={isBirthTimeUnknown}
               onChange={e => setBirthTime(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-amber-500 focus:outline-none rounded text-slate-100 text-xs"
+              className={`w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded text-slate-100 text-xs transition-colors ${
+                isBirthTimeUnknown
+                  ? 'opacity-60 cursor-not-allowed bg-slate-950 text-slate-400 border-dashed border-amber-900/40'
+                  : 'focus:border-amber-500 focus:outline-none'
+              }`}
             />
-            {errors.birthTime && <p className="text-[11px] text-rose-400 mt-1">{errors.birthTime}</p>}
+            {isBirthTimeUnknown ? (
+              <p className="text-[11px] text-amber-400/90 mt-1 flex items-center gap-1">
+                <span>ℹ Doğum saati bilinmediği için varsayılan 12.00 (öğlen) referans alınacaktır. Yükselen burç ve evler kesin sunulmayacak; gezegen konumları bundan etkilenmeyecektir.</span>
+              </p>
+            ) : errors.birthTime ? (
+              <p className="text-[11px] text-rose-400 mt-1">{errors.birthTime}</p>
+            ) : null}
           </div>
 
           <div>

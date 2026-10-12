@@ -388,9 +388,18 @@ export const AnalysisOverviewView: React.FC<AnalysisOverviewViewProps> = ({
               <Compass className="w-6 h-6 text-emerald-400 shrink-0" />
               <div>
                 <span className="text-[11px] text-slate-400 block">Yükselen Burç (ASC)</span>
-                <span className="text-base font-semibold text-slate-100">{astrology.ascendantEstimate}</span>
-                <span className="text-[11px] text-emerald-400 font-mono block">
-                  {astrology.ascendantCoordinates?.formatted || (astrology.astronomicalAudit?.timePrecision.birthTimeProvided ? 'Hesaplandı' : 'Doğum saati gerekli')}
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-semibold text-slate-100">{astrology.ascendantEstimate}</span>
+                  {astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                      12.00 Varsayımı (Kesin Değil)
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[11px] font-mono block ${astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed ? "text-amber-400/80" : "text-emerald-400"}`}>
+
+
+                  {astrology.ascendantCoordinates?.formatted || (astrology.astronomicalAudit?.timePrecision.birthTimeProvided ? 'Hesaplandı' : (astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed ? '12.00 Referansı (Belirsiz)' : 'Doğum saati gerekli'))}
                 </span>
                 <span className="text-[10px] text-slate-500 block">
                   {astrology.midheavenCoordinates ? `MC: ${astrology.midheavenCoordinates.formatted}` : 'Doğu Ufku Kesişimi'}

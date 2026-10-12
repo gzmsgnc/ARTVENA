@@ -673,6 +673,7 @@ export interface AstrologyCalculationOptions {
   zodiacSystem?: 'Tropikal Zodyak (Tropical)';
   houseSystem?: 'Placidus' | 'Whole Sign' | 'Equal';
   resolvedLocation?: ResolvedLocation;
+  isBirthTimeUnknown?: boolean;
 }
 
 export function calculateAstrology(
@@ -699,11 +700,14 @@ export function calculateAstrology(
   const location: ResolvedLocation = options?.resolvedLocation || resolveCityCoordinates(birthPlace);
 
   // 3. Doğum Saati ve Tarihsel Saat Dilimi (Timezone & DST) Çözümlemesi
+  // Eğer kullanıcı 'Doğum saatimi bilmiyorum' seçeneğini işaretlemişse (isBirthTimeUnknown === true)
+  // veya saat boş girilmişse varsayılan 12.00 (öğlen) kabul edilir; ancak kesin doğum saati sayılmaz.
+  const isTimeExplicitlyUnknown = options?.isBirthTimeUnknown === true;
   let localHour = 12;
   let localMinute = 0;
   let isTimeProvided = false;
 
-  if (birthTime && birthTime.includes(':')) {
+  if (!isTimeExplicitlyUnknown && birthTime && birthTime.includes(':')) {
     const [hStr, mStr] = birthTime.split(':');
     const parsedH = parseInt(hStr, 10);
     const parsedM = parseInt(mStr, 10);
@@ -775,6 +779,8 @@ export function calculateAstrology(
       uncertaintyNotice = `Doğum saati girilmediği ve doğum yeri ("${birthPlace || 'Belirtilmedi'}") coğrafi veri tabanında doğrulanamadığı için Yükselen Burç (ASC), Tepe Noktası (MC) ve 12 Ev yerleşimleri hesaplanamaz. Lütfen doğum saatinizi ve geçerli bir şehir/ülke belirterek konumu netleştiriniz.`;
     } else if (location.isAmbiguous) {
       uncertaintyNotice = `Doğum yeri ("${birthPlace || 'Belirtilmedi'}") coğrafi veri tabanında doğrulanamadı. Kesin Yükselen Burç (ASC), Tepe Noktası (MC) ve 12 Ev başlangıç çizgileri coğrafi koordinatlara bağlı olduğundan kesin olarak hesaplanamaz. Lütfen geçerli bir şehir ve ülke adı girerek konumu netleştiriniz.`;
+    } else if (isTimeExplicitlyUnknown) {
+      uncertaintyNotice = 'Doğum saati bilinmediği için hesaplamalar 12.00 (öğlen) varsayımıyla yapılmıştır. Yükselen Burç (ASC), Tepe Noktası (MC) ve ev başlangıçları doğum saatine son derece duyarlı olduğundan kesin kabul edilmemelidir. Güneş, Ay ve gezegen zodyak konumları bu durumdan etkilenmeden güvenle sunulmuştur.';
     } else {
       uncertaintyNotice = 'Doğum saati girilmediği veya doğrulanamadığı için Yükselen Burç ve 12 Ev yerleşimleri hesaplanamaz.';
     }
@@ -897,6 +903,7 @@ export function calculateAstrology(
     },
     timePrecision: {
       birthTimeProvided: isTimeProvided,
+      isDefaultNoonAssumed: !isTimeProvided,
       hasExactAscendant: canCalculateHousesAndAscendant,
       uncertaintyNotice,
       isNonExistentTime: tzInfo.isNonExistentTime,
