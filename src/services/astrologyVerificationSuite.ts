@@ -1404,6 +1404,84 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
       description: resTokyoDiurnal.moonDiurnalRange?.rangeDescription
     }
   });
+
+  // =========================================================================
+  // DÜZELTME 6: YAZ SAATİ GEÇİŞLERİNDE YEREL GÜN VE GERÇEK SÜRE TESTLERİ (23 & 25 SAAT)
+  // =========================================================================
+
+  // SENARYO 47: Yaz Saatinin Başladığı Tarih (Spring Forward: 23 Saatlik Yerel Gün)
+  // Konum: New York (America/New_York) | Tarih: 2020-03-08
+  // 00:00 Yerel Saat kış saati ofsetindedir (EST: UTC-5) -> 2020-03-08T05:00:00.000Z
+  // 02:00'de saatler 03:00'e atlar (1 saat kaybolur).
+  // 24:00 Yerel Saat (ertesi gün 00:00) yaz saati ofsetindedir (EDT: UTC-4) -> 2020-03-09T04:00:00.000Z
+  // Gerçek Süre: 23 saat (24 saat DEĞİL!)
+  const resSpringForwardNY = calculateAstrology('2020-03-08', undefined, 'New York', {
+    isBirthTimeUnknown: true
+  });
+  const sfRange = resSpringForwardNY.moonDiurnalRange;
+  const sfStartMs = sfRange ? new Date(sfRange.startUtcIso).getTime() : 0;
+  const sfEndMs = sfRange ? new Date(sfRange.endUtcIso).getTime() : 0;
+  const sfDurationHours = (sfEndMs - sfStartMs) / 3600000;
+
+  const s47Passed =
+    sfRange !== undefined &&
+    sfRange.startUtcIso === '2020-03-08T05:00:00.000Z' &&
+    sfRange.endUtcIso === '2020-03-09T04:00:00.000Z' &&
+    sfDurationHours === 23 &&
+    typeof sfRange.dailySpanDegrees === 'number' &&
+    sfRange.dailySpanDegrees > 0;
+
+  results.push({
+    id: 'astro_scen_47',
+    name: '47. Düzeltme 6: Yaz Saati Başlangıcında 23 Saatlik Yerel Gün Hesabı (New York 2020-03-08 Spring Forward)',
+    passed: s47Passed,
+    message: s47Passed
+      ? 'Başarılı: Yaz saati başlangıcında yerel günün tam 23 saat sürdüğü doğrulandı (05:00Z -> 04:00Z); 24 saat kabul edilmedi.'
+      : 'Hata: Yaz saati başlangıcında yerel gün süresi 23 saat olarak hesaplanamadı!',
+    auditDetails: {
+      startUtcIso: sfRange?.startUtcIso,
+      endUtcIso: sfRange?.endUtcIso,
+      actualDurationHours: sfDurationHours,
+      dailySpanDegrees: sfRange?.dailySpanDegrees
+    }
+  });
+
+  // SENARYO 48: Yaz Saatinin Sona Erdiği Tarih (Fall Back: 25 Saatlik Yerel Gün)
+  // Konum: New York (America/New_York) | Tarih: 2020-11-01
+  // 00:00 Yerel Saat yaz saati ofsetindedir (EDT: UTC-4) -> 2020-11-01T04:00:00.000Z
+  // 02:00'de saatler 01:00'e geri alınır (1 saat fazladan yaşanır).
+  // 24:00 Yerel Saat (ertesi gün 00:00) standart kış saati ofsetindedir (EST: UTC-5) -> 2020-11-02T05:00:00.000Z
+  // Gerçek Süre: 25 saat (24 saat DEĞİL!)
+  const resFallBackNY = calculateAstrology('2020-11-01', undefined, 'New York', {
+    isBirthTimeUnknown: true
+  });
+  const fbRange = resFallBackNY.moonDiurnalRange;
+  const fbStartMs = fbRange ? new Date(fbRange.startUtcIso).getTime() : 0;
+  const fbEndMs = fbRange ? new Date(fbRange.endUtcIso).getTime() : 0;
+  const fbDurationHours = (fbEndMs - fbStartMs) / 3600000;
+
+  const s48Passed =
+    fbRange !== undefined &&
+    fbRange.startUtcIso === '2020-11-01T04:00:00.000Z' &&
+    fbRange.endUtcIso === '2020-11-02T05:00:00.000Z' &&
+    fbDurationHours === 25 &&
+    typeof fbRange.dailySpanDegrees === 'number' &&
+    fbRange.dailySpanDegrees > 0;
+
+  results.push({
+    id: 'astro_scen_48',
+    name: '48. Düzeltme 6: Yaz Saati Bitişinde 25 Saatlik Yerel Gün Hesabı (New York 2020-11-01 Fall Back)',
+    passed: s48Passed,
+    message: s48Passed
+      ? 'Başarılı: Yaz saati bitişinde yerel günün tam 25 saat sürdüğü doğrulandı (04:00Z -> 05:00Z); 24 saat kabul edilmedi.'
+      : 'Hata: Yaz saati bitişinde yerel gün süresi 25 saat olarak hesaplanamadı!',
+    auditDetails: {
+      startUtcIso: fbRange?.startUtcIso,
+      endUtcIso: fbRange?.endUtcIso,
+      actualDurationHours: fbDurationHours,
+      dailySpanDegrees: fbRange?.dailySpanDegrees
+    }
+  });
   return results;
 }
 
