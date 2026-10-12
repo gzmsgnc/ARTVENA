@@ -1406,15 +1406,16 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
   });
 
   // =========================================================================
-  // DÜZELTME 6: YAZ SAATİ GEÇİŞLERİNDE YEREL GÜN VE GERÇEK SÜRE TESTLERİ (23 & 25 SAAT)
+  // DÜZELTME 7: YAZ SAATİ TESTLERİNİN KANIT GÜCÜ (23 & 25 SAAT, OFSET VE AÇISAL FARK DOĞRULAMASI)
   // =========================================================================
 
   // SENARYO 47: Yaz Saatinin Başladığı Tarih (Spring Forward: 23 Saatlik Yerel Gün)
   // Konum: New York (America/New_York) | Tarih: 2020-03-08
-  // 00:00 Yerel Saat kış saati ofsetindedir (EST: UTC-5) -> 2020-03-08T05:00:00.000Z
-  // 02:00'de saatler 03:00'e atlar (1 saat kaybolur).
-  // 24:00 Yerel Saat (ertesi gün 00:00) yaz saati ofsetindedir (EDT: UTC-4) -> 2020-03-09T04:00:00.000Z
-  // Gerçek Süre: 23 saat (24 saat DEĞİL!)
+  // 1. Saat Dilimi Doğrulama İşlevi Kontrolü:
+  const locNYForSf = resolveCityCoordinates('New York');
+  const sfTzStart = getHistoricalTimezoneOffset(2020, 3, 8, 0, locNYForSf, 0); // Yerel 00:00 (EST: UTC-5)
+  const sfTzEnd = getHistoricalTimezoneOffset(2020, 3, 9, 0, locNYForSf, 0);   // Yerel 24:00 / Ertesi 00:00 (EDT: UTC-4)
+
   const resSpringForwardNY = calculateAstrology('2020-03-08', undefined, 'New York', {
     isBirthTimeUnknown: true
   });
@@ -1423,35 +1424,57 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
   const sfEndMs = sfRange ? new Date(sfRange.endUtcIso).getTime() : 0;
   const sfDurationHours = (sfEndMs - sfStartMs) / 3600000;
 
+  // 2. Başlangıç ve Bitiş Ay Boylamlarından Bağımsız Açısal Fark (360° modülo) ve Tolerans Hesabı:
+  let independentSfAngularDiff = 0;
+  if (sfRange) {
+    independentSfAngularDiff = sfRange.endOfDayLongitude - sfRange.startOfDayLongitude;
+    if (independentSfAngularDiff < 0) independentSfAngularDiff += 360;
+  }
+  const sfAngularToleranceDiff = sfRange ? Math.abs(sfRange.dailySpanDegrees - independentSfAngularDiff) : Infinity;
+
   const s47Passed =
     sfRange !== undefined &&
+    sfTzStart.offsetHours === -5 &&
+    sfTzEnd.offsetHours === -4 &&
     sfRange.startUtcIso === '2020-03-08T05:00:00.000Z' &&
     sfRange.endUtcIso === '2020-03-09T04:00:00.000Z' &&
     sfDurationHours === 23 &&
-    typeof sfRange.dailySpanDegrees === 'number' &&
-    sfRange.dailySpanDegrees > 0;
+    sfAngularToleranceDiff < 1e-6 &&
+    sfRange.dailySpanDegrees > 13.0 &&
+    sfRange.dailySpanDegrees < 16.0;
 
   results.push({
     id: 'astro_scen_47',
-    name: '47. Düzeltme 6: Yaz Saati Başlangıcında 23 Saatlik Yerel Gün Hesabı (New York 2020-03-08 Spring Forward)',
+    name: '47. Düzeltme 7: Yaz Saati Başlangıcında 23 Saatlik Yerel Gün (Ofset, Süre ve Bağımsız Açısal Fark Kanıtı)',
     passed: s47Passed,
     message: s47Passed
-      ? 'Başarılı: Yaz saati başlangıcında yerel günün tam 23 saat sürdüğü doğrulandı (05:00Z -> 04:00Z); 24 saat kabul edilmedi.'
-      : 'Hata: Yaz saati başlangıcında yerel gün süresi 23 saat olarak hesaplanamadı!',
+      ? 'Başarılı: Yaz saati başlangıcında saat dilimi ofsetleri (-5 / -4), gerçek 23 saatlik süre ve bağımsız Ay boylam açısal farkı kanıtlandı.'
+      : 'Hata: 23 saatlik yaz saati başlangıç testinde süre, ofset veya açısal fark tutarsızlığı!',
     auditDetails: {
+      location: locNYForSf.cityName,
+      timeZone: locNYForSf.timeZone,
+      startLocalTime: '2020-03-08 00:00',
+      startTimezoneOffsetHours: sfTzStart.offsetHours,
+      endLocalTime: '2020-03-08 24:00 (2020-03-09 00:00)',
+      endTimezoneOffsetHours: sfTzEnd.offsetHours,
       startUtcIso: sfRange?.startUtcIso,
       endUtcIso: sfRange?.endUtcIso,
       actualDurationHours: sfDurationHours,
-      dailySpanDegrees: sfRange?.dailySpanDegrees
+      startOfDayMoonLongitude: sfRange?.startOfDayLongitude,
+      endOfDayMoonLongitude: sfRange?.endOfDayLongitude,
+      calculatedDailySpanDegrees: sfRange?.dailySpanDegrees,
+      independentAngularDiffDegrees: independentSfAngularDiff,
+      angularToleranceDiff: sfAngularToleranceDiff
     }
   });
 
   // SENARYO 48: Yaz Saatinin Sona Erdiği Tarih (Fall Back: 25 Saatlik Yerel Gün)
   // Konum: New York (America/New_York) | Tarih: 2020-11-01
-  // 00:00 Yerel Saat yaz saati ofsetindedir (EDT: UTC-4) -> 2020-11-01T04:00:00.000Z
-  // 02:00'de saatler 01:00'e geri alınır (1 saat fazladan yaşanır).
-  // 24:00 Yerel Saat (ertesi gün 00:00) standart kış saati ofsetindedir (EST: UTC-5) -> 2020-11-02T05:00:00.000Z
-  // Gerçek Süre: 25 saat (24 saat DEĞİL!)
+  // 1. Saat Dilimi Doğrulama İşlevi Kontrolü:
+  const locNYForFb = resolveCityCoordinates('New York');
+  const fbTzStart = getHistoricalTimezoneOffset(2020, 11, 1, 0, locNYForFb, 0); // Yerel 00:00 (EDT: UTC-4)
+  const fbTzEnd = getHistoricalTimezoneOffset(2020, 11, 2, 0, locNYForFb, 0);   // Yerel 24:00 / Ertesi 00:00 (EST: UTC-5)
+
   const resFallBackNY = calculateAstrology('2020-11-01', undefined, 'New York', {
     isBirthTimeUnknown: true
   });
@@ -1460,26 +1483,47 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
   const fbEndMs = fbRange ? new Date(fbRange.endUtcIso).getTime() : 0;
   const fbDurationHours = (fbEndMs - fbStartMs) / 3600000;
 
+  // 2. Başlangıç ve Bitiş Ay Boylamlarından Bağımsız Açısal Fark (360° modülo) ve Tolerans Hesabı:
+  let independentFbAngularDiff = 0;
+  if (fbRange) {
+    independentFbAngularDiff = fbRange.endOfDayLongitude - fbRange.startOfDayLongitude;
+    if (independentFbAngularDiff < 0) independentFbAngularDiff += 360;
+  }
+  const fbAngularToleranceDiff = fbRange ? Math.abs(fbRange.dailySpanDegrees - independentFbAngularDiff) : Infinity;
+
   const s48Passed =
     fbRange !== undefined &&
+    fbTzStart.offsetHours === -4 &&
+    fbTzEnd.offsetHours === -5 &&
     fbRange.startUtcIso === '2020-11-01T04:00:00.000Z' &&
     fbRange.endUtcIso === '2020-11-02T05:00:00.000Z' &&
     fbDurationHours === 25 &&
-    typeof fbRange.dailySpanDegrees === 'number' &&
-    fbRange.dailySpanDegrees > 0;
+    fbAngularToleranceDiff < 1e-6 &&
+    fbRange.dailySpanDegrees > 11.5 &&
+    fbRange.dailySpanDegrees < 14.0;
 
   results.push({
     id: 'astro_scen_48',
-    name: '48. Düzeltme 6: Yaz Saati Bitişinde 25 Saatlik Yerel Gün Hesabı (New York 2020-11-01 Fall Back)',
+    name: '48. Düzeltme 7: Yaz Saati Bitişinde 25 Saatlik Yerel Gün (Ofset, Süre ve Bağımsız Açısal Fark Kanıtı)',
     passed: s48Passed,
     message: s48Passed
-      ? 'Başarılı: Yaz saati bitişinde yerel günün tam 25 saat sürdüğü doğrulandı (04:00Z -> 05:00Z); 24 saat kabul edilmedi.'
-      : 'Hata: Yaz saati bitişinde yerel gün süresi 25 saat olarak hesaplanamadı!',
+      ? 'Başarılı: Yaz saati bitişinde saat dilimi ofsetleri (-4 / -5), gerçek 25 saatlik süre ve bağımsız Ay boylam açısal farkı kanıtlandı.'
+      : 'Hata: 25 saatlik yaz saati bitiş testinde süre, ofset veya açısal fark tutarsızlığı!',
     auditDetails: {
+      location: locNYForFb.cityName,
+      timeZone: locNYForFb.timeZone,
+      startLocalTime: '2020-11-01 00:00',
+      startTimezoneOffsetHours: fbTzStart.offsetHours,
+      endLocalTime: '2020-11-01 24:00 (2020-11-02 00:00)',
+      endTimezoneOffsetHours: fbTzEnd.offsetHours,
       startUtcIso: fbRange?.startUtcIso,
       endUtcIso: fbRange?.endUtcIso,
       actualDurationHours: fbDurationHours,
-      dailySpanDegrees: fbRange?.dailySpanDegrees
+      startOfDayMoonLongitude: fbRange?.startOfDayLongitude,
+      endOfDayMoonLongitude: fbRange?.endOfDayLongitude,
+      calculatedDailySpanDegrees: fbRange?.dailySpanDegrees,
+      independentAngularDiffDegrees: independentFbAngularDiff,
+      angularToleranceDiff: fbAngularToleranceDiff
     }
   });
   return results;
