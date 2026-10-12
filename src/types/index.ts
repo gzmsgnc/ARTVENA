@@ -123,16 +123,19 @@ export interface AstrologyAstronomicalAudit {
 }
 
 export interface MoonDiurnalRange {
-  startOfDayLongitude: number; // 00:00 UTC
+  startOfDayLongitude: number; // Yerel gün başlangıcı (00:00 Yerel Saat -> Kesin Tarihsel UTC anı)
   startOfDaySign: ZodiacSign;
   startOfDayDegreeInSign: number;
-  endOfDayLongitude: number;   // 24:00 UTC
+  endOfDayLongitude: number;   // Yerel gün bitişi (24:00 Yerel Saat -> Kesin Tarihsel UTC anı)
   endOfDaySign: ZodiacSign;
   endOfDayDegreeInSign: number;
-  dailySpanDegrees: number;    // Gün içindeki toplam hareket (yaklaşık 12° - 15°)
+  dailySpanDegrees: number;    // Gerçek astronomik günlük hareket miktarı (derece)
   crossesSigns: boolean;       // Gün içinde burç değiştiriyor mu?
   possibleSigns: ZodiacSign[]; // Gün içinde olası Ay burçları
   rangeDescription: string;    // Türkçe detaylı açıklama
+  localDate: string;           // Danışanın yerel takvim günü (YYYY-MM-DD)
+  startUtcIso: string;         // Yerel 00:00 anının UTC ISO zamanı
+  endUtcIso: string;           // Yerel 24:00 anının UTC ISO zamanı
 }
 
 export interface AstrologyResult {

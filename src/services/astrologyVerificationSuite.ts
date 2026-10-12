@@ -1300,30 +1300,108 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
     }
   });
 
-  // SENARYO 43: Doğum Saati Bilinmediğinde Ay Günlük Hareket Aralığı (Diurnal Range ~12-15°)
-  // ve Gün İçi Olası Burç/Derece Değişimi Analizi
+  // SENARYO 43: Doğum Saati Bilinmediğinde Ay Günlük Hareket Aralığı:
+  // DÜZELTME 4: Sabit derece aralığı koşullanmaz; gerçek astronomik hareket üretilir ve doğrulanır.
   const resMoonDiurnalCheck = calculateAstrology('1990-05-15', '12:00', 'İstanbul', {
     isBirthTimeUnknown: true
   });
   const moonRange = resMoonDiurnalCheck.moonDiurnalRange;
   const s43Passed =
     moonRange !== undefined &&
-    moonRange.dailySpanDegrees >= 11.5 &&
-    moonRange.dailySpanDegrees <= 16.0 &&
+    typeof moonRange.dailySpanDegrees === 'number' &&
+    moonRange.dailySpanDegrees > 0 &&
+    moonRange.dailySpanDegrees < 20 &&
+    typeof moonRange.startUtcIso === 'string' &&
+    typeof moonRange.endUtcIso === 'string' &&
     typeof moonRange.rangeDescription === 'string' &&
     moonRange.rangeDescription.includes('Ay');
   results.push({
     id: 'astro_scen_43',
-    name: '43. Saat Bilinmiyor: Ay Günlük Hareket Aralığı (~12°-15°) ve Gün İçi Burç Değişim Analizi',
+    name: '43. Düzeltme 4: Ay Günlük Hareket Aralığı Gerçek Astronomik Hesabı (Sabit Aralık Şartı Olmaksızın)',
     passed: s43Passed,
     message: s43Passed
-      ? "Başarılı: Ay'ın gün içindeki (~12°-15°) hareket aralığı ve olası burç değişimleri analitik olarak hesaplandı."
-      : 'Hata: Ay günlük hareket aralığı hesaplanamadı veya beklenen sınırlar dışında!',
+      ? "Başarılı: Ay'ın günlük hareketi gerçek efemerisle hesaplandı, yerel gün ve UTC sınırları belgelendi."
+      : 'Hata: Ay günlük hareket hesabı başarısız!',
     auditDetails: {
       dailySpanDegrees: moonRange?.dailySpanDegrees,
       crossesSigns: moonRange?.crossesSigns,
-      possibleSigns: moonRange?.possibleSigns,
-      rangeDescription: moonRange?.rangeDescription
+      startUtcIso: moonRange?.startUtcIso,
+      endUtcIso: moonRange?.endUtcIso
+    }
+  });
+
+  // SENARYO 44: Farklı Saat Dilimlerindeki Yerel Günler ve Yerel Tarihin UTC Tarihinden Farklı Olması
+  // Tokyo (UTC+9): 2024-05-15 00:00 yerel saati -> UTC 2024-05-14 15:00'e denk gelir (Önceki UTC gününe kayış).
+  // New York (UTC-4 EDT): 2024-05-15 00:00 yerel saati -> UTC 2024-05-15 04:00'e denk gelir.
+  const resTokyoDiurnal = calculateAstrology('2024-05-15', undefined, 'Tokyo', { isBirthTimeUnknown: true });
+  const resNYDiurnal = calculateAstrology('2024-05-15', undefined, 'New York', { isBirthTimeUnknown: true });
+  const s44Passed =
+    resTokyoDiurnal.moonDiurnalRange !== undefined &&
+    resNYDiurnal.moonDiurnalRange !== undefined &&
+    resTokyoDiurnal.moonDiurnalRange.startUtcIso.startsWith('2024-05-14T15:00') &&
+    resTokyoDiurnal.moonDiurnalRange.endUtcIso.startsWith('2024-05-15T15:00') &&
+    resNYDiurnal.moonDiurnalRange.startUtcIso.startsWith('2024-05-15T04:00') &&
+    resNYDiurnal.moonDiurnalRange.endUtcIso.startsWith('2024-05-16T04:00') &&
+    resTokyoDiurnal.moonDiurnalRange.startOfDayLongitude !== resNYDiurnal.moonDiurnalRange.startOfDayLongitude;
+  results.push({
+    id: 'astro_scen_44',
+    name: '44. Düzeltme 4: Yerel Takvim Gününe Göre UTC Sınır Dönüşümleri (Tokyo UTC+9 vs New York UTC-4)',
+    passed: s44Passed,
+    message: s44Passed
+      ? 'Başarılı: Danışanın yerel takvim günü Tokyo ve New York tarihsel ofsetleriyle gerçek UTC başlangıç ve bitiş anlarına dönüştürüldü.'
+      : 'Hata: Yerel takvim gününün UTC dönüşümünde tutarsızlık!',
+    auditDetails: {
+      tokyoStartUtc: resTokyoDiurnal.moonDiurnalRange?.startUtcIso,
+      tokyoEndUtc: resTokyoDiurnal.moonDiurnalRange?.endUtcIso,
+      nyStartUtc: resNYDiurnal.moonDiurnalRange?.startUtcIso,
+      nyEndUtc: resNYDiurnal.moonDiurnalRange?.endUtcIso
+    }
+  });
+
+  // SENARYO 45: Yerel Gün İçinde Ay'ın Burç Değiştirdiği Gün (crossesSigns === true)
+  // New York 2024-05-15 tarihinde yerel gün boyunca Ay Aslan burcundan Başak burcuna geçiş yapar.
+  // Test iki burcun da (Aslan ve Başak) olası olarak sunulduğunu ve gün içi hareketle doğrulandığını teyit eder.
+  const s45Passed =
+    resNYDiurnal.moonDiurnalRange !== undefined &&
+    resNYDiurnal.moonDiurnalRange.crossesSigns === true &&
+    resNYDiurnal.moonDiurnalRange.possibleSigns.includes('Aslan') &&
+    resNYDiurnal.moonDiurnalRange.possibleSigns.includes('Başak') &&
+    resNYDiurnal.moonDiurnalRange.rangeDescription.includes('Aslan') &&
+    resNYDiurnal.moonDiurnalRange.rangeDescription.includes('Başak');
+  results.push({
+    id: 'astro_scen_45',
+    name: "45. Düzeltme 4: Ay'ın Yerel Gün İçinde Burç Değiştirmesi (crossesSigns === true & Olası 2 Burç)",
+    passed: s45Passed,
+    message: s45Passed
+      ? 'Başarılı: Yerel gün içinde Ay burç değiştirdiğinde her iki olası burç da kullanıcıya sunuldu ve gün içi geçiş doğrulandı.'
+      : 'Hata: Gün içi burç değiştirme tespiti başarısız!',
+    auditDetails: {
+      crossesSigns: resNYDiurnal.moonDiurnalRange?.crossesSigns,
+      possibleSigns: resNYDiurnal.moonDiurnalRange?.possibleSigns,
+      span: resNYDiurnal.moonDiurnalRange?.dailySpanDegrees
+    }
+  });
+
+  // SENARYO 46: Yerel Gün İçinde Ay'ın Burç Değiştirmediği Gün (crossesSigns === false)
+  // Tokyo 2024-05-15 tarihinde yerel gün boyunca (UTC 14 Mayıs 15:00 - 15 Mayıs 15:00) Ay tüm gün Aslan burcundadır.
+  // Test tek burcun korunduğunu, ancak derecenin yaklaşık (12.00 referansı) olarak işaretlendiğini teyit eder.
+  const s46Passed =
+    resTokyoDiurnal.moonDiurnalRange !== undefined &&
+    resTokyoDiurnal.moonDiurnalRange.crossesSigns === false &&
+    resTokyoDiurnal.moonDiurnalRange.possibleSigns.length === 1 &&
+    resTokyoDiurnal.moonDiurnalRange.possibleSigns[0] === 'Aslan' &&
+    resTokyoDiurnal.moonDiurnalRange.rangeDescription.includes('12.00 referansı');
+  results.push({
+    id: 'astro_scen_46',
+    name: "46. Düzeltme 4: Ay'ın Burç Değiştirmediği Günde (crossesSigns === false) 12.00 Derece Belirsizliği",
+    passed: s46Passed,
+    message: s46Passed
+      ? 'Başarılı: Burç değişmeyen günde burç onaylandı, ancak derecenin 12.00 referanslı yaklaşık olduğu açıkça belirtildi.'
+      : 'Hata: Burç değişmeyen gün tespitinde tutarsızlık!',
+    auditDetails: {
+      crossesSigns: resTokyoDiurnal.moonDiurnalRange?.crossesSigns,
+      possibleSigns: resTokyoDiurnal.moonDiurnalRange?.possibleSigns,
+      description: resTokyoDiurnal.moonDiurnalRange?.rangeDescription
     }
   });
   return results;

@@ -764,30 +764,95 @@ export function calculateAstrology(
   const rawSunLong = calculateSunLongitude(T);
   const rawMoonLong = calculateMoonLongitude(T);
 
-  // Doğum saati bilinmediğinde Ay'ın gün içindeki (~12° - 15°) olası hareket aralığının hesaplanması:
+  // Doğum saati bilinmediğinde Ay'ın olası konum aralığı:
+  // DÜZELTME 4: Ay'ın günlük hareket aralığı soyut UTC gününe göre DEĞİL,
+  // danışanın doğum yerinin GERÇEK YEREL TAKVİM GÜNÜNE (00:00 - 24:00 Yerel Saat) göre hesaplanır.
+  // Yerel gün başlangıcı ve bitişi o bölgenin kesin tarihsel saat dilimi ve DST ofsetiyle gerçek UTC anına çevrilir.
   let moonDiurnalRange: any = undefined;
   if (!isTimeProvided) {
-    const jdStart = calculateJulianDate(adjustedYear, adjustedMonth, adjustedDay, 0.0);
+    // 1. Yerel gün başlangıcı (00:00 Yerel Saat)
+    const tzStart = getHistoricalTimezoneOffset(year, month, day, 0, location, 0);
+    let startUtcFraction = (0 - tzStart.offsetHours) / 24;
+    let sYear = year, sMonth = month, sDay = day;
+    if (startUtcFraction < 0) {
+      startUtcFraction += 1;
+      sDay -= 1;
+      if (sDay < 1) {
+        sMonth -= 1;
+        if (sMonth < 1) { sYear -= 1; sMonth = 12; }
+        sDay = new Date(sYear, sMonth, 0).getDate();
+      }
+    } else if (startUtcFraction >= 1) {
+      startUtcFraction -= 1;
+      sDay += 1;
+      const maxD = new Date(sYear, sMonth, 0).getDate();
+      if (sDay > maxD) { sDay = 1; sMonth += 1; if (sMonth > 12) { sYear += 1; sMonth = 1; } }
+    }
+    const jdStart = calculateJulianDate(sYear, sMonth, sDay, startUtcFraction);
     const TStart = calculateJulianCenturies(jdStart);
     const moonLongStart = calculateMoonLongitude(TStart);
     const coordStart = longitudeToCoordinate(moonLongStart);
 
-    const jdEnd = calculateJulianDate(adjustedYear, adjustedMonth, adjustedDay, 1.0);
+    // 2. Ertesi yerel gün başlangıcı (24:00 Yerel Saat = ertesi gün 00:00)
+    let nextY = year, nextM = month, nextD = day + 1;
+    const maxDaysInMonth = new Date(year, month, 0).getDate();
+    if (nextD > maxDaysInMonth) {
+      nextD = 1;
+      nextM += 1;
+      if (nextM > 12) { nextY += 1; nextM = 1; }
+    }
+    const tzEnd = getHistoricalTimezoneOffset(nextY, nextM, nextD, 0, location, 0);
+    let endUtcFraction = (0 - tzEnd.offsetHours) / 24;
+    let eYear = nextY, eMonth = nextM, eDay = nextD;
+    if (endUtcFraction < 0) {
+      endUtcFraction += 1;
+      eDay -= 1;
+      if (eDay < 1) {
+        eMonth -= 1;
+        if (eMonth < 1) { eYear -= 1; eMonth = 12; }
+        eDay = new Date(eYear, eMonth, 0).getDate();
+      }
+    } else if (endUtcFraction >= 1) {
+      endUtcFraction -= 1;
+      eDay += 1;
+      const maxDEnd = new Date(eYear, eMonth, 0).getDate();
+      if (eDay > maxDEnd) { eDay = 1; eMonth += 1; if (eMonth > 12) { eYear += 1; eMonth = 1; } }
+    }
+    const jdEnd = calculateJulianDate(eYear, eMonth, eDay, endUtcFraction);
     const TEnd = calculateJulianCenturies(jdEnd);
     const moonLongEnd = calculateMoonLongitude(TEnd);
     const coordEnd = longitudeToCoordinate(moonLongEnd);
 
-    let span = moonLongEnd - moonLongStart;
-    if (span < 0) span += 360;
+    // 3. Gün içindeki gerçek astronomik hareket miktarı
+    let actualSpan = moonLongEnd - moonLongStart;
+    if (actualSpan < 0) actualSpan += 360;
 
-    const crossesSigns = coordStart.sign !== coordEnd.sign;
-    const possibleSigns = crossesSigns
-      ? [coordStart.sign, coordEnd.sign]
-      : [coordStart.sign];
+    // 4. Gün içi adımlarla burç geçişi ve olası burçların tespiti:
+    // (Yalnızca uç noktaları karşılaştırmakla yetinmeyip gün içi geçişi doğrula)
+    const signsSet = new Set<string>();
+    signsSet.add(coordStart.sign);
+
+    for (let step = 1; step <= 24; step++) {
+      const frac = step / 24;
+      const jdStep = jdStart + (jdEnd - jdStart) * frac;
+      const TStep = calculateJulianCenturies(jdStep);
+      const mStep = calculateMoonLongitude(TStep);
+      const cStep = longitudeToCoordinate(mStep);
+      signsSet.add(cStep.sign);
+    }
+    signsSet.add(coordEnd.sign);
+
+    const possibleSigns = Array.from(signsSet) as ZodiacSign[];
+    const crossesSigns = possibleSigns.length > 1;
+
+    // ISO zaman damgaları
+    const startUtcDate = new Date(Date.UTC(sYear, sMonth - 1, sDay) + Math.round(startUtcFraction * 86400000));
+    const endUtcDate = new Date(Date.UTC(eYear, eMonth - 1, eDay) + Math.round(endUtcFraction * 86400000));
+    const localDateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
     const rangeDescription = crossesSigns
-      ? `Ay gün içinde saatlik hareketle ${coordStart.sign} (${coordStart.degreeInSign.toFixed(1)}°) burcundan ${coordEnd.sign} (${coordEnd.degreeInSign.toFixed(1)}°) burcuna geçiş yapmaktadır. Doğum saati bilinmediğinden Ay burcu kesin değildir (Olası burçlar: ${possibleSigns.join(', ')}).`
-      : `Ay gün boyunca ${coordStart.sign} burcunda (${coordStart.degreeInSign.toFixed(1)}° ile ${coordEnd.degreeInSign.toFixed(1)}° arasında) ilerlemektedir. Ay burcu ${coordStart.sign} olarak doğrulanmış, ancak kesin derecesi saat bilinmediğinden yaklaşık (12.00 referansı) kabul edilmelidir.`;
+      ? `Danışanın yerel doğum gününde (${localDateStr}) Ay saatlik hareketle ${coordStart.sign} (${coordStart.degreeInSign.toFixed(1)}°) burcundan ${coordEnd.sign} (${coordEnd.degreeInSign.toFixed(1)}°) burcuna geçmektedir (Günlük hareket: ${actualSpan.toFixed(2)}°). Doğum saati bilinmediğinden Ay burcu kesin değildir (Olası burçlar: ${possibleSigns.join(', ')}).`
+      : `Danışanın yerel doğum gününde (${localDateStr}) Ay tüm gün boyunca ${coordStart.sign} burcunda (${coordStart.degreeInSign.toFixed(1)}° ile ${coordEnd.degreeInSign.toFixed(1)}° arasında, toplam ${actualSpan.toFixed(2)}°) ilerlemiştir. Ay burcu ${coordStart.sign} olarak doğrulanmış, ancak kesin derecesi saat bilinmediğinden yaklaşık (12.00 referansı) kabul edilmelidir.`;
 
     moonDiurnalRange = {
       startOfDayLongitude: moonLongStart,
@@ -796,10 +861,13 @@ export function calculateAstrology(
       endOfDayLongitude: moonLongEnd,
       endOfDaySign: coordEnd.sign,
       endOfDayDegreeInSign: coordEnd.degreeInSign,
-      dailySpanDegrees: span,
+      dailySpanDegrees: actualSpan,
       crossesSigns,
       possibleSigns,
-      rangeDescription
+      rangeDescription,
+      localDate: localDateStr,
+      startUtcIso: startUtcDate.toISOString(),
+      endUtcIso: endUtcDate.toISOString()
     };
   }
 
