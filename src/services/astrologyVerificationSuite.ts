@@ -553,5 +553,188 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
     }
   });
 
+  // SENARYO 18: Küresel Şehir Eşleme, Niteleyici (Qualifier) ve Adaş/Homonym Ayrımı
+  const locParisTx = resolveCityCoordinates('Paris, Texas');
+  const locParisFr = resolveCityCoordinates('Paris, Fransa');
+  const locParisDefault = resolveCityCoordinates('Paris');
+  const locLondonCa = resolveCityCoordinates('London, Ontario');
+  const locLondonUk = resolveCityCoordinates('London, UK');
+  const locSantiagoCl = resolveCityCoordinates('Santiago, Şili');
+  const locSantiagoEs = resolveCityCoordinates('Santiago, İspanya');
+  const locSanJoseCa = resolveCityCoordinates('San Jose, California');
+  const locSanJoseCr = resolveCityCoordinates('San Jose, Kosta Rika');
+  const locKdzEregli = resolveCityCoordinates('Karadeniz Ereğli');
+  const locKonyaEregli = resolveCityCoordinates('Konya Ereğli');
+  const locVancouver = resolveCityCoordinates('Vancouver');
+  const locVanCheck = resolveCityCoordinates('Van');
+
+  const s18Passed =
+    locParisTx.matchedKey === 'paris_us_tx' && locParisTx.latitude < 35 &&
+    locParisFr.matchedKey === 'paris_fr' && locParisFr.latitude > 48 &&
+    locParisDefault.matchedKey === 'paris_fr' &&
+    locLondonCa.matchedKey === 'london_ca' && locLondonCa.longitude < -80 &&
+    locLondonUk.matchedKey === 'london_gb' && locLondonUk.longitude >= -1 &&
+    locSantiagoCl.matchedKey === 'santiago_cl' && locSantiagoCl.latitude < 0 &&
+    locSantiagoEs.matchedKey === 'santiago_es' && locSantiagoEs.latitude > 40 &&
+    locSanJoseCa.matchedKey === 'san_jose_us_ca' && locSanJoseCa.latitude > 35 &&
+    locSanJoseCr.matchedKey === 'san_jose_cr' && locSanJoseCr.latitude < 15 &&
+    locKdzEregli.matchedKey === 'kdz_eregli_tr' &&
+    locKonyaEregli.matchedKey === 'konya_eregli_tr' &&
+    locVancouver.matchedKey === 'vancouver_ca' &&
+    locVanCheck.matchedKey === 'van';
+
+  results.push({
+    id: 'astro_scen_18',
+    name: '18. Küresel Şehir Eşleme, Niteleyici ve Adaş (Homonym) Ayrımı',
+    passed: s18Passed,
+    message: s18Passed
+      ? 'Başarılı: Paris TX/FR, London ON/UK, Santiago CL/ES, San Jose CA/CR, Ereğli ve Van/Vancouver adaş ayrımı hatasız sağlandı.'
+      : 'Hata: Küresel adaş şehir ayrımında veya niteleyici eşleşmesinde yanlış konum seçildi!',
+    auditDetails: {
+      parisTx: locParisTx.matchedKey,
+      parisFr: locParisFr.matchedKey,
+      londonCa: locLondonCa.matchedKey,
+      londonUk: locLondonUk.matchedKey,
+      santiagoCl: locSantiagoCl.matchedKey,
+      santiagoEs: locSantiagoEs.matchedKey,
+      sanJoseCa: locSanJoseCa.matchedKey,
+      sanJoseCr: locSanJoseCr.matchedKey,
+      kdzEregli: locKdzEregli.matchedKey,
+      konyaEregli: locKonyaEregli.matchedKey,
+      vancouver: locVancouver.matchedKey,
+      van: locVanCheck.matchedKey
+    }
+  });
+
+  // SENARYO 19: Küresel Kıtalardan Tarihsel Saat Dilimi ve DST Geçişleri (IANA tzdb Doğrulaması)
+  const tzTests = [
+    { city: 'İstanbul', y: 2015, m: 7, d: 15, expOff: 3, expDst: true },
+    { city: 'İstanbul', y: 2015, m: 1, d: 15, expOff: 2, expDst: false },
+    { city: 'İstanbul', y: 2020, m: 1, d: 15, expOff: 3, expDst: false },
+    { city: 'London', y: 2020, m: 7, d: 15, expOff: 1, expDst: true },
+    { city: 'London', y: 2020, m: 1, d: 15, expOff: 0, expDst: false },
+    { city: 'New York', y: 2020, m: 7, d: 15, expOff: -4, expDst: true },
+    { city: 'New York', y: 2020, m: 1, d: 15, expOff: -5, expDst: false },
+    { city: 'Los Angeles', y: 2020, m: 7, d: 15, expOff: -7, expDst: true },
+    { city: 'Los Angeles', y: 2020, m: 1, d: 15, expOff: -8, expDst: false },
+    { city: 'Tokyo', y: 2020, m: 1, d: 15, expOff: 9, expDst: false },
+    { city: 'Delhi', y: 2020, m: 1, d: 15, expOff: 5.5, expDst: false },
+    { city: 'Dubai', y: 2020, m: 1, d: 15, expOff: 4, expDst: false },
+    { city: 'Cairo', y: 2020, m: 1, d: 15, expOff: 2, expDst: false },
+    { city: 'Johannesburg', y: 2020, m: 1, d: 15, expOff: 2, expDst: false },
+    { city: 'Sydney', y: 2020, m: 1, d: 15, expOff: 11, expDst: true },   // Güney yarımküre yaz saati
+    { city: 'Sydney', y: 2020, m: 7, d: 15, expOff: 10, expDst: false },  // Güney yarımküre standart kış saati
+    { city: 'Auckland', y: 2020, m: 1, d: 15, expOff: 13, expDst: true }, // Yeni Zelanda yaz saati
+    { city: 'Auckland', y: 2020, m: 7, d: 15, expOff: 12, expDst: false }
+  ];
+
+  let allTzPassed = true;
+  const tzResultsSummary: any[] = [];
+  for (const t of tzTests) {
+    const loc = resolveCityCoordinates(t.city);
+    const tzRes = getHistoricalTimezoneOffset(t.y, t.m, t.d, 12, loc);
+    const match = tzRes.offsetHours === t.expOff && tzRes.isDst === t.expDst;
+    if (!match) allTzPassed = false;
+    tzResultsSummary.push({
+      city: t.city,
+      date: `${t.y}-${t.m}-${t.d}`,
+      actualOffset: tzRes.offsetHours,
+      expectedOffset: t.expOff,
+      actualDst: tzRes.isDst,
+      expectedDst: t.expDst,
+      passed: match
+    });
+  }
+
+  results.push({
+    id: 'astro_scen_19',
+    name: '19. Küresel Kıtalardan Tarihsel Saat Dilimi ve DST Geçişleri (IANA tzdb)',
+    passed: allTzPassed,
+    message: allTzPassed
+      ? 'Başarılı: Avrupa, Amerika, Asya, Afrika ve Okyanusya (ters mevsim DST, buçuklu saat dilimleri ve Türkiye mevzuatı) IANA tzdb ile 100% doğrulandı.'
+      : 'Hata: Küresel tarihsel saat dilimi ve DST hesaplamalarında tutarsızlık bulundu!',
+    auditDetails: {
+      totalTested: tzTests.length,
+      details: tzResultsSummary
+    }
+  });
+
+  // SENARYO 20: Bilinmeyen Konumda Kesin Yükselen ve Ev Üretmeme Güvenliği (Kural 6)
+  const resUnknownLocation = calculateAstrology('1995-06-15', '14:30', 'AtlantisBilinmeyenYer999');
+  const s20Passed =
+    resUnknownLocation.ascendantEstimate === 'Belirsiz' &&
+    resUnknownLocation.ascendantCoordinates === undefined &&
+    resUnknownLocation.midheavenCoordinates === undefined &&
+    resUnknownLocation.houses === undefined &&
+    resUnknownLocation.planets !== undefined &&
+    resUnknownLocation.planets.every(p => p.house === undefined) &&
+    resUnknownLocation.lunarNodes !== undefined &&
+    resUnknownLocation.lunarNodes.mean.rahu.house === undefined &&
+    resUnknownLocation.lunarNodes.trueNode.rahu.house === undefined &&
+    resUnknownLocation.astronomicalAudit?.timePrecision.hasExactAscendant === false &&
+    resUnknownLocation.uncertaintyFlag === true &&
+    (resUnknownLocation.astronomicalAudit?.timePrecision.uncertaintyNotice?.includes('doğrulanamadı') ?? false);
+
+  results.push({
+    id: 'astro_scen_20',
+    name: '20. Bilinmeyen Konumda Sahte Koordinat ve Kesin Yükselen/Ev Üretmeme Güvenliği',
+    passed: s20Passed,
+    message: s20Passed
+      ? 'Başarılı: Bilinmeyen konumda ("AtlantisBilinmeyenYer999") kesin Yükselen Burç (ASC) ve 12 Ev başlangıç çizgileri üretilmedi; kullanıcıdan konumu netleştirmesi istendi.'
+      : 'Hata: Bilinmeyen konum için sahte koordinatlarla kesin yükselen veya ev çizgisi üretildi!',
+    auditDetails: {
+      ascendantEstimate: resUnknownLocation.ascendantEstimate,
+      ascendantCoordinates: resUnknownLocation.ascendantCoordinates,
+      houses: resUnknownLocation.houses,
+      uncertaintyFlag: resUnknownLocation.uncertaintyFlag,
+      uncertaintyNotice: resUnknownLocation.astronomicalAudit?.timePrecision.uncertaintyNotice
+    }
+  });
+
+  // SENARYO 21: Küresel Şehirlerde Boylam ve Saat Dilimine Göre Doğru RAMC ve Yükselen Doğrulaması
+  const resTokyo = calculateAstrology('2000-01-01', '12:00', 'Tokyo');
+  const resNewYork = calculateAstrology('2000-01-01', '12:00', 'New York');
+  const resSydney = calculateAstrology('2000-01-01', '12:00', 'Sydney');
+
+  const s21Passed =
+    resTokyo.astronomicalAudit?.timePrecision.hasExactAscendant === true &&
+    resTokyo.astronomicalAudit?.locationResolution.timezoneOffsetHours === 9 &&
+    resTokyo.ascendantCoordinates !== undefined &&
+    resTokyo.houses?.length === 12 &&
+    resNewYork.astronomicalAudit?.timePrecision.hasExactAscendant === true &&
+    resNewYork.astronomicalAudit?.locationResolution.timezoneOffsetHours === -5 &&
+    resNewYork.ascendantCoordinates !== undefined &&
+    resNewYork.houses?.length === 12 &&
+    resSydney.astronomicalAudit?.timePrecision.hasExactAscendant === true &&
+    resSydney.astronomicalAudit?.locationResolution.timezoneOffsetHours === 11 &&
+    resSydney.ascendantCoordinates !== undefined &&
+    resSydney.houses?.length === 12;
+
+  results.push({
+    id: 'astro_scen_21',
+    name: '21. Küresel Şehirlerde Yerel Saat/UTC Dönüşümü ile Kesin Yükselen ve 12 Ev Doğrulaması',
+    passed: s21Passed,
+    message: s21Passed
+      ? 'Başarılı: Tokyo (UTC+9), New York (UTC-5 kış) ve Sidney (UTC+11 yaz) doğumlarında yerel saat doğru UTC ye dönüştürüldü ve kesin Yükselen burçlar hesaplandı.'
+      : 'Hata: Küresel şehirlerin yerel saat - UTC dönüşümünde veya yükselen burç hesaplamasında hata tespit edildi!',
+    auditDetails: {
+      tokyo: {
+        tz: resTokyo.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+        asc: resTokyo.ascendantCoordinates?.formatted,
+        sign: resTokyo.ascendantEstimate
+      },
+      newYork: {
+        tz: resNewYork.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+        asc: resNewYork.ascendantCoordinates?.formatted,
+        sign: resNewYork.ascendantEstimate
+      },
+      sydney: {
+        tz: resSydney.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+        asc: resSydney.ascendantCoordinates?.formatted,
+        sign: resSydney.ascendantEstimate
+      }
+    }
+  });
+
   return results;
 }

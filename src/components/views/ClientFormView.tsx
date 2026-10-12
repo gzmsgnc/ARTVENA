@@ -102,6 +102,9 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
               placeholder="Örn: Ayşe"
               className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-amber-500 focus:outline-none rounded text-slate-100 text-xs"
             />
+            <span className="text-[10px] text-slate-500 mt-1 block">
+              Türkiye (81 il & ilçeler) ve dünya metropolleri desteklenir. Adaş şehirlerde ülke/bölge belirtiniz (Örn: Paris, Texas veya London, Ontario).
+            </span>
             {errors.firstName && <p className="text-[11px] text-rose-400 mt-1">{errors.firstName}</p>}
           </div>
 
@@ -160,7 +163,7 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
               type="text"
               value={birthPlace}
               onChange={e => setBirthPlace(e.target.value)}
-              placeholder="Örn: İzmir, Türkiye"
+              placeholder="Örn: İzmir, Türkiye veya London, UK, New York, Tokyo..."
               className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-amber-500 focus:outline-none rounded text-slate-100 text-xs"
             />
           </div>

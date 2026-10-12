@@ -761,11 +761,19 @@ export function calculateAstrology(
   let rawMcLong: number | undefined = undefined;
   let uncertaintyNotice: string | undefined = undefined;
 
-  if (isTimeProvided) {
+  const canCalculateHousesAndAscendant = isTimeProvided && !location.isAmbiguous;
+
+  if (canCalculateHousesAndAscendant) {
     rawAscLong = calculateAscendant(ramc, location.latitude, obliquity);
     rawMcLong = calculateMidheaven(ramc, obliquity);
   } else {
-    uncertaintyNotice = 'Doğum saati girilmediği veya doğrulanamadığı için Yükselen Burç ve 12 Ev yerleşimleri hesaplanamaz.';
+    if (!isTimeProvided && location.isAmbiguous) {
+      uncertaintyNotice = `Doğum saati girilmediği ve doğum yeri ("${birthPlace || 'Belirtilmedi'}") coğrafi veri tabanında doğrulanamadığı için Yükselen Burç (ASC), Tepe Noktası (MC) ve 12 Ev yerleşimleri hesaplanamaz. Lütfen doğum saatinizi ve geçerli bir şehir/ülke belirterek konumu netleştiriniz.`;
+    } else if (location.isAmbiguous) {
+      uncertaintyNotice = `Doğum yeri ("${birthPlace || 'Belirtilmedi'}") coğrafi veri tabanında doğrulanamadı. Kesin Yükselen Burç (ASC), Tepe Noktası (MC) ve 12 Ev başlangıç çizgileri coğrafi koordinatlara bağlı olduğundan kesin olarak hesaplanamaz. Lütfen geçerli bir şehir ve ülke adı girerek konumu netleştiriniz.`;
+    } else {
+      uncertaintyNotice = 'Doğum saati girilmediği veya doğrulanamadığı için Yükselen Burç ve 12 Ev yerleşimleri hesaplanamaz.';
+    }
   }
 
   // 7. Batı Astrolojisi Tropikal Zodyak Koordinatları (0° Koç Ekinoksuna Sabitlenmiş)
@@ -785,7 +793,7 @@ export function calculateAstrology(
   let activeHouseCusps: number[] | undefined = undefined;
   const effectiveHouseSystem = chosenHouseSystem;
 
-  if (isTimeProvided) {
+  if (canCalculateHousesAndAscendant) {
     const houseData = calculateHouseCusps(ramc, location.latitude, obliquity, effectiveHouseSystem);
     houses = [];
     activeHouseCusps = new Array(13).fill(0);
@@ -811,7 +819,7 @@ export function calculateAstrology(
       longitude: effectiveSunLong,
       sign: sunCoord.sign,
       degreeInSign: sunCoord.degreeInSign,
-      house: (isTimeProvided && activeHouseCusps) ? getHouseForLongitude(effectiveSunLong, activeHouseCusps) : undefined,
+      house: (canCalculateHousesAndAscendant && activeHouseCusps) ? getHouseForLongitude(effectiveSunLong, activeHouseCusps) : undefined,
       formatted: sunCoord.formatted
     },
     {
@@ -819,7 +827,7 @@ export function calculateAstrology(
       longitude: effectiveMoonLong,
       sign: moonCoord.sign,
       degreeInSign: moonCoord.degreeInSign,
-      house: (isTimeProvided && activeHouseCusps) ? getHouseForLongitude(effectiveMoonLong, activeHouseCusps) : undefined,
+      house: (canCalculateHousesAndAscendant && activeHouseCusps) ? getHouseForLongitude(effectiveMoonLong, activeHouseCusps) : undefined,
       formatted: moonCoord.formatted
     }
   ];
@@ -842,7 +850,7 @@ export function calculateAstrology(
       longitude: pLong,
       sign: pCoord.sign,
       degreeInSign: pCoord.degreeInSign,
-      house: (isTimeProvided && activeHouseCusps) ? getHouseForLongitude(pLong, activeHouseCusps) : undefined,
+      house: (canCalculateHousesAndAscendant && activeHouseCusps) ? getHouseForLongitude(pLong, activeHouseCusps) : undefined,
       formatted: pCoord.formatted
     });
   }
@@ -850,7 +858,7 @@ export function calculateAstrology(
   // 10. Ortalama ve Gerçek Ay Düğümleri (Rahu & Ketu - Tropikal)
   const lunarNodes = calculateLunarNodes(
     T,
-    isTimeProvided,
+    canCalculateHousesAndAscendant,
     activeHouseCusps
   );
 
@@ -878,7 +886,7 @@ export function calculateAstrology(
     },
     timePrecision: {
       birthTimeProvided: isTimeProvided,
-      hasExactAscendant: isTimeProvided,
+      hasExactAscendant: canCalculateHousesAndAscendant,
       uncertaintyNotice
     }
   };
@@ -886,7 +894,7 @@ export function calculateAstrology(
   return {
     sunSign: sunCoord.sign,
     moonSignEstimate: moonCoord.sign,
-    ascendantEstimate: (isTimeProvided && ascCoord) ? ascCoord.sign : ('Belirsiz' as any),
+    ascendantEstimate: (canCalculateHousesAndAscendant && ascCoord) ? ascCoord.sign : ('Belirsiz' as any),
     element: zodiacInfo.element,
     modality: zodiacInfo.modality,
     rulingPlanet: zodiacInfo.ruler,
@@ -895,11 +903,11 @@ export function calculateAstrology(
     cosmicSymbols: zodiacInfo.cosmicSymbols,
     sunCoordinates: sunCoord,
     moonCoordinates: moonCoord,
-    ascendantCoordinates: (isTimeProvided && ascCoord) ? ascCoord : undefined,
-    midheavenCoordinates: (isTimeProvided && mcCoord) ? mcCoord : undefined,
+    ascendantCoordinates: (canCalculateHousesAndAscendant && ascCoord) ? ascCoord : undefined,
+    midheavenCoordinates: (canCalculateHousesAndAscendant && mcCoord) ? mcCoord : undefined,
     astronomicalAudit,
     uncertaintyFlag: !isTimeProvided || !isValidDate || location.isAmbiguous,
-    ascendantSign: (isTimeProvided && ascCoord) ? ascCoord.sign : undefined,
+    ascendantSign: (canCalculateHousesAndAscendant && ascCoord) ? ascCoord.sign : undefined,
     zodiacSystem: 'Tropikal Zodyak (Tropical)',
     houseSystem: effectiveHouseSystem,
     houses,
