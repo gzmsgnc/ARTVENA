@@ -764,6 +764,45 @@ export function calculateAstrology(
   const rawSunLong = calculateSunLongitude(T);
   const rawMoonLong = calculateMoonLongitude(T);
 
+  // Doğum saati bilinmediğinde Ay'ın gün içindeki (~12° - 15°) olası hareket aralığının hesaplanması:
+  let moonDiurnalRange: any = undefined;
+  if (!isTimeProvided) {
+    const jdStart = calculateJulianDate(adjustedYear, adjustedMonth, adjustedDay, 0.0);
+    const TStart = calculateJulianCenturies(jdStart);
+    const moonLongStart = calculateMoonLongitude(TStart);
+    const coordStart = longitudeToCoordinate(moonLongStart);
+
+    const jdEnd = calculateJulianDate(adjustedYear, adjustedMonth, adjustedDay, 1.0);
+    const TEnd = calculateJulianCenturies(jdEnd);
+    const moonLongEnd = calculateMoonLongitude(TEnd);
+    const coordEnd = longitudeToCoordinate(moonLongEnd);
+
+    let span = moonLongEnd - moonLongStart;
+    if (span < 0) span += 360;
+
+    const crossesSigns = coordStart.sign !== coordEnd.sign;
+    const possibleSigns = crossesSigns
+      ? [coordStart.sign, coordEnd.sign]
+      : [coordStart.sign];
+
+    const rangeDescription = crossesSigns
+      ? `Ay gün içinde saatlik hareketle ${coordStart.sign} (${coordStart.degreeInSign.toFixed(1)}°) burcundan ${coordEnd.sign} (${coordEnd.degreeInSign.toFixed(1)}°) burcuna geçiş yapmaktadır. Doğum saati bilinmediğinden Ay burcu kesin değildir (Olası burçlar: ${possibleSigns.join(', ')}).`
+      : `Ay gün boyunca ${coordStart.sign} burcunda (${coordStart.degreeInSign.toFixed(1)}° ile ${coordEnd.degreeInSign.toFixed(1)}° arasında) ilerlemektedir. Ay burcu ${coordStart.sign} olarak doğrulanmış, ancak kesin derecesi saat bilinmediğinden yaklaşık (12.00 referansı) kabul edilmelidir.`;
+
+    moonDiurnalRange = {
+      startOfDayLongitude: moonLongStart,
+      startOfDaySign: coordStart.sign,
+      startOfDayDegreeInSign: coordStart.degreeInSign,
+      endOfDayLongitude: moonLongEnd,
+      endOfDaySign: coordEnd.sign,
+      endOfDayDegreeInSign: coordEnd.degreeInSign,
+      dailySpanDegrees: span,
+      crossesSigns,
+      possibleSigns,
+      rangeDescription
+    };
+  }
+
   // 6. Yükselen ve MC Hesabı (Tropikal)
   let rawAscLong: number | undefined = undefined;
   let rawMcLong: number | undefined = undefined;
@@ -933,6 +972,7 @@ export function calculateAstrology(
     houses,
     planets,
     lunarNodes,
+    moonDiurnalRange,
     isValidBirthDate: isValidDate,
     dateValidationMessage: dateValidation.errorMessage
   };

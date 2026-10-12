@@ -1269,6 +1269,63 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
       step2Sign: step2Updated.ascendantEstimate
     }
   });
+
+  // =========================================================================
+  // DÜZELTME 3: SAAT BİLİNMİYOR DURUMUNDA HASSAS HESAPLAMA DOĞRULUĞU & AY BELİRSİZLİĞİ
+  // =========================================================================
+
+  // SENARYO 42: Bilinmeyen Doğum Saatinde Gezegen Ev Yerleşimlerinin (Planet Houses)
+  // Kesin Olarak Üretilmemesi (house === undefined) ve Reçeteye Aktarılmama Güvencesi
+  const resNoTimeHousesCheck = calculateAstrology('1990-05-15', '12:00', 'İstanbul', {
+    isBirthTimeUnknown: true
+  });
+  const allPlanetHousesUndefined = resNoTimeHousesCheck.planets?.every(p => p.house === undefined) ?? false;
+  const ascUndefined = resNoTimeHousesCheck.ascendantCoordinates === undefined && resNoTimeHousesCheck.ascendantEstimate === 'Belirsiz';
+  const mcUndefined = resNoTimeHousesCheck.midheavenCoordinates === undefined;
+  const housesUndefined = resNoTimeHousesCheck.houses === undefined;
+
+  const s42Passed = allPlanetHousesUndefined && ascUndefined && mcUndefined && housesUndefined;
+  results.push({
+    id: 'astro_scen_42',
+    name: '42. Saat Bilinmiyor: Gezegen Ev Yerleşimlerinin (Planet Houses), ASC, MC ve Evlerin Kesinlikle Üretilmemesi',
+    passed: s42Passed,
+    message: s42Passed
+      ? 'Başarılı: Doğum saati bilinmediğinde gezegenlerin evleri (house), ASC, MC ve 12 ev kesinlikle üretilmedi (undefined/Belirsiz).'
+      : 'Hata: Doğum saati bilinmediğinde gezegenlere sahte ev atandı veya yükselen üretildi!',
+    auditDetails: {
+      allPlanetHousesUndefined,
+      ascEstimate: resNoTimeHousesCheck.ascendantEstimate,
+      hasAscCoords: resNoTimeHousesCheck.ascendantCoordinates !== undefined,
+      hasHouses: resNoTimeHousesCheck.houses !== undefined
+    }
+  });
+
+  // SENARYO 43: Doğum Saati Bilinmediğinde Ay Günlük Hareket Aralığı (Diurnal Range ~12-15°)
+  // ve Gün İçi Olası Burç/Derece Değişimi Analizi
+  const resMoonDiurnalCheck = calculateAstrology('1990-05-15', '12:00', 'İstanbul', {
+    isBirthTimeUnknown: true
+  });
+  const moonRange = resMoonDiurnalCheck.moonDiurnalRange;
+  const s43Passed =
+    moonRange !== undefined &&
+    moonRange.dailySpanDegrees >= 11.5 &&
+    moonRange.dailySpanDegrees <= 16.0 &&
+    typeof moonRange.rangeDescription === 'string' &&
+    moonRange.rangeDescription.includes('Ay');
+  results.push({
+    id: 'astro_scen_43',
+    name: '43. Saat Bilinmiyor: Ay Günlük Hareket Aralığı (~12°-15°) ve Gün İçi Burç Değişim Analizi',
+    passed: s43Passed,
+    message: s43Passed
+      ? "Başarılı: Ay'ın gün içindeki (~12°-15°) hareket aralığı ve olası burç değişimleri analitik olarak hesaplandı."
+      : 'Hata: Ay günlük hareket aralığı hesaplanamadı veya beklenen sınırlar dışında!',
+    auditDetails: {
+      dailySpanDegrees: moonRange?.dailySpanDegrees,
+      crossesSigns: moonRange?.crossesSigns,
+      possibleSigns: moonRange?.possibleSigns,
+      rangeDescription: moonRange?.rangeDescription
+    }
+  });
   return results;
 }
 

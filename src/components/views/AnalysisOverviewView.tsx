@@ -372,14 +372,26 @@ export const AnalysisOverviewView: React.FC<AnalysisOverviewViewProps> = ({
 
             <div className="p-4 bg-slate-900 border border-slate-800 rounded flex items-center gap-3">
               <Moon className="w-6 h-6 text-blue-400 shrink-0" />
-              <div>
+              <div className="flex-1">
                 <span className="text-[11px] text-slate-400 block">Ay Burcu (Astronomik)</span>
-                <span className="text-base font-semibold text-slate-100">{astrology.moonSignEstimate}</span>
-                <span className="text-[11px] text-blue-400 font-mono block">
-                  {astrology.moonCoordinates?.formatted || 'Tahmini'}
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-semibold text-slate-100">{astrology.moonSignEstimate}</span>
+                  {astrology.moonDiurnalRange?.crossesSigns && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                      Gün İçi Burç Değişimi
+                    </span>
+                  )}
+                  {astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed && !astrology.moonDiurnalRange?.crossesSigns && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">
+                      12.00 Referansı
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[11px] font-mono block ${astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed ? "text-amber-400/80" : "text-blue-400"}`}>
+                  {astrology.moonCoordinates?.formatted || "Tahmini"}
                 </span>
                 <span className="text-[10px] text-slate-500 block">
-                  Duygusal Rezonans & İç Dünya
+                  {astrology.moonDiurnalRange ? `Günlük Hareket: ~${astrology.moonDiurnalRange.dailySpanDegrees.toFixed(1)}°` : "Duygusal Rezonans & İç Dünya"}
                 </span>
               </div>
             </div>

@@ -122,6 +122,19 @@ export interface AstrologyAstronomicalAudit {
   };
 }
 
+export interface MoonDiurnalRange {
+  startOfDayLongitude: number; // 00:00 UTC
+  startOfDaySign: ZodiacSign;
+  startOfDayDegreeInSign: number;
+  endOfDayLongitude: number;   // 24:00 UTC
+  endOfDaySign: ZodiacSign;
+  endOfDayDegreeInSign: number;
+  dailySpanDegrees: number;    // Gün içindeki toplam hareket (yaklaşık 12° - 15°)
+  crossesSigns: boolean;       // Gün içinde burç değiştiriyor mu?
+  possibleSigns: ZodiacSign[]; // Gün içinde olası Ay burçları
+  rangeDescription: string;    // Türkçe detaylı açıklama
+}
+
 export interface AstrologyResult {
   sunSign: ZodiacSign;
   moonSignEstimate: ZodiacSign;
@@ -145,6 +158,7 @@ export interface AstrologyResult {
   houses?: HousePlacement[];
   planets?: PlanetPosition[];
   lunarNodes?: LunarNodesResult;
+  moonDiurnalRange?: MoonDiurnalRange;
   // Date validation audit
   isValidBirthDate?: boolean;
   dateValidationMessage?: string;
