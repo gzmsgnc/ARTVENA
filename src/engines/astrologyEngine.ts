@@ -711,7 +711,7 @@ export function calculateAstrology(
   }
 
   // Tarihsel saat dilimi ofsetini belirle
-  const tzInfo = getHistoricalTimezoneOffset(year, month, day, localHour, location);
+  const tzInfo = getHistoricalTimezoneOffset(year, month, day, localHour, location, localMinute);
   const offsetHours = tzInfo.offsetHours;
 
   // Yerel saati UTC'ye dönüştür
@@ -774,6 +774,13 @@ export function calculateAstrology(
     } else {
       uncertaintyNotice = 'Doğum saati girilmediği veya doğrulanamadığı için Yükselen Burç ve 12 Ev yerleşimleri hesaplanamaz.';
     }
+  }
+
+  // Yaz saati sıçrama (gap - var olmayan saat) veya sonbahar geri alma (fold - iki kez yaşanan saat) tespiti
+  if (tzInfo.isNonExistentTime) {
+    uncertaintyNotice = `Belirtilen yerel doğum saati (${birthTime || ''}) yaz saati uygulaması (DST) sıçraması nedeniyle bu bölgede var olmayan bir zaman aralığına denk gelmektedir. Lütfen saati kontrol ediniz veya en yakın geçerli anı referans alınız.`;
+  } else if (tzInfo.isAmbiguousFold) {
+    uncertaintyNotice = (uncertaintyNotice ? uncertaintyNotice + ' ' : '') + `Belirtilen doğum saati (${birthTime || ''}) sonbahar saat geri alma geçişinde iki kez yaşanan belirsiz zaman aralığına denk gelmektedir.`;
   }
 
   // 7. Batı Astrolojisi Tropikal Zodyak Koordinatları (0° Koç Ekinoksuna Sabitlenmiş)
@@ -887,7 +894,9 @@ export function calculateAstrology(
     timePrecision: {
       birthTimeProvided: isTimeProvided,
       hasExactAscendant: canCalculateHousesAndAscendant,
-      uncertaintyNotice
+      uncertaintyNotice,
+      isNonExistentTime: tzInfo.isNonExistentTime,
+      isAmbiguousFold: tzInfo.isAmbiguousFold
     }
   };
 

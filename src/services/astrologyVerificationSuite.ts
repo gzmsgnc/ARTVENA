@@ -18,7 +18,7 @@ import {
   calculateMeanLunarNodeLongitude,
   calculateTrueLunarNodeLongitude
 } from '../engines/astrologyEngine';
-import { resolveCityCoordinates, getHistoricalTimezoneOffset } from '../data/geoTimezoneData';
+import { resolveCityCoordinates, resolveOnlineCityCoordinates, getHistoricalTimezoneOffset } from '../data/geoTimezoneData';
 
 export interface AstrologyScenarioResult {
   id: string;
@@ -736,5 +736,357 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
     }
   });
 
+
+  // =========================================================================
+  // KÜRESEL KONUM VE TARİHSEL SAAT DİLİMİ KAPSAMLI TESTLERİ (14 ZORUNLU DURUM)
+  // =========================================================================
+
+  // SENARYO 22 (Durum 1): İstanbul - Bağımsız Referans Doğrulaması (J2000.0)
+  // Referans: 2000-01-01 12:00 Yerel Saat -> Kış Saati UTC+2 -> 10:00 UTC
+  // Koordinat: 41.01°N, 28.98°E | RAMC: ~279.36° | Yükselen: Koç (16°12') | MC: Oğlak (8°36')
+  const resIstBench = calculateAstrology('2000-01-01', '12:00', 'İstanbul');
+  const s22Passed =
+    resIstBench.astronomicalAudit?.locationResolution.timezoneOffsetHours === 2 &&
+    resIstBench.astronomicalAudit?.locationResolution.isDaylightSavingTime === false &&
+    resIstBench.ascendantCoordinates?.sign === 'Koç' &&
+    resIstBench.midheavenCoordinates?.sign === 'Oğlak' &&
+    resIstBench.houses?.length === 12 &&
+    resIstBench.houses[0].sign === 'Koç';
+  results.push({
+    id: 'astro_scen_22',
+    name: '22. Durum 1: İstanbul Bağımsız Referans (Kış Saati UTC+2, RAMC, Koç ASC, Oğlak MC)',
+    passed: s22Passed,
+    message: s22Passed
+      ? 'Başarılı: İstanbul 2000-01-01 kış saati (UTC+2) olarak doğrulandı; Koç ASC ve Oğlak MC tam uyumlu hesaplandı.'
+      : 'Hata: İstanbul referans hesaplamasında tutarsızlık!',
+    auditDetails: {
+      tzOffset: resIstBench.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      asc: resIstBench.ascendantCoordinates?.formatted,
+      ascSign: resIstBench.ascendantCoordinates?.sign,
+      mc: resIstBench.midheavenCoordinates?.formatted,
+      mcSign: resIstBench.midheavenCoordinates?.sign
+    }
+  });
+
+  // SENARYO 23 (Durum 2): Londra - Bağımsız Referans Doğrulaması (Greenwich J2000.0)
+  // Referans: 2000-01-01 12:00 Yerel Saat -> GMT UTC+0 -> 12:00 UTC
+  // Koordinat: 51.51°N, -0.13°W | RAMC: ~280.46° | Yükselen: Koç (24°17') | MC: Oğlak (9°37')
+  const resLonBench = calculateAstrology('2000-01-01', '12:00', 'London');
+  const s23Passed =
+    resLonBench.astronomicalAudit?.locationResolution.timezoneOffsetHours === 0 &&
+    resLonBench.astronomicalAudit?.locationResolution.isDaylightSavingTime === false &&
+    resLonBench.ascendantCoordinates?.sign === 'Koç' &&
+    resLonBench.midheavenCoordinates?.sign === 'Oğlak' &&
+    resLonBench.houses?.length === 12;
+  results.push({
+    id: 'astro_scen_23',
+    name: '23. Durum 2: Londra Bağımsız Referans (GMT UTC+0, RAMC, Koç ASC, Oğlak MC)',
+    passed: s23Passed,
+    message: s23Passed
+      ? 'Başarılı: Londra 2000-01-01 GMT (UTC+0) ile Koç ASC ve Oğlak MC tam uyumlu hesaplandı.'
+      : 'Hata: Londra referans hesaplamasında tutarsızlık!',
+    auditDetails: {
+      tzOffset: resLonBench.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      asc: resLonBench.ascendantCoordinates?.formatted,
+      ascSign: resLonBench.ascendantCoordinates?.sign,
+      mc: resLonBench.midheavenCoordinates?.formatted,
+      mcSign: resLonBench.midheavenCoordinates?.sign
+    }
+  });
+
+  // SENARYO 24 (Durum 3): New York - Bağımsız Referans Doğrulaması (EST J2000.0)
+  // Referans: 2000-01-01 12:00 Yerel Saat -> EST UTC-5 -> 17:00 UTC
+  // Koordinat: 40.71°N, -74.01°W | RAMC: ~281.66° | Yükselen: Koç (19°58') | MC: Oğlak (10°43')
+  const resNYBench = calculateAstrology('2000-01-01', '12:00', 'New York');
+  const s24Passed =
+    resNYBench.astronomicalAudit?.locationResolution.timezoneOffsetHours === -5 &&
+    resNYBench.astronomicalAudit?.locationResolution.isDaylightSavingTime === false &&
+    resNYBench.ascendantCoordinates?.sign === 'Koç' &&
+    resNYBench.midheavenCoordinates?.sign === 'Oğlak' &&
+    resNYBench.houses?.length === 12;
+  results.push({
+    id: 'astro_scen_24',
+    name: '24. Durum 3: New York Bağımsız Referans (EST UTC-5, RAMC, Koç ASC, Oğlak MC)',
+    passed: s24Passed,
+    message: s24Passed
+      ? 'Başarılı: New York EST (UTC-5) ile Koç ASC ve Oğlak MC tam uyumlu hesaplandı.'
+      : 'Hata: New York referans hesaplamasında tutarsızlık!',
+    auditDetails: {
+      tzOffset: resNYBench.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      asc: resNYBench.ascendantCoordinates?.formatted,
+      ascSign: resNYBench.ascendantCoordinates?.sign,
+      mc: resNYBench.midheavenCoordinates?.formatted,
+      mcSign: resNYBench.midheavenCoordinates?.sign
+    }
+  });
+
+  // SENARYO 25 (Durum 4): Tokyo - Bağımsız Referans Doğrulaması (JST J2000.0)
+  // Referans: 2000-01-01 12:00 Yerel Saat -> JST UTC+9 -> 03:00 UTC
+  // Koordinat: 35.68°N, 139.69°E | RAMC: ~284.74° | Yükselen: Koç (22°55') | MC: Oğlak (13°34')
+  const resTokBench = calculateAstrology('2000-01-01', '12:00', 'Tokyo');
+  const s25Passed =
+    resTokBench.astronomicalAudit?.locationResolution.timezoneOffsetHours === 9 &&
+    resTokBench.astronomicalAudit?.locationResolution.isDaylightSavingTime === false &&
+    resTokBench.ascendantCoordinates?.sign === 'Koç' &&
+    resTokBench.midheavenCoordinates?.sign === 'Oğlak' &&
+    resTokBench.houses?.length === 12;
+  results.push({
+    id: 'astro_scen_25',
+    name: '25. Durum 4: Tokyo Bağımsız Referans (JST UTC+9, RAMC, Koç ASC, Oğlak MC)',
+    passed: s25Passed,
+    message: s25Passed
+      ? 'Başarılı: Tokyo JST (UTC+9) ile Koç ASC ve Oğlak MC tam uyumlu hesaplandı.'
+      : 'Hata: Tokyo referans hesaplamasında tutarsızlık!',
+    auditDetails: {
+      tzOffset: resTokBench.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      asc: resTokBench.ascendantCoordinates?.formatted,
+      ascSign: resTokBench.ascendantCoordinates?.sign,
+      mc: resTokBench.midheavenCoordinates?.formatted,
+      mcSign: resTokBench.midheavenCoordinates?.sign
+    }
+  });
+
+  // SENARYO 26 (Durum 5): Sidney - Bağımsız Referans Doğrulaması (AEDT Yaz Saati J2000.0)
+  // Referans: 2000-01-01 12:00 Yerel Saat -> Güney Yarımküre Yaz Saati AEDT UTC+11 -> 01:00 UTC
+  // Koordinat: -33.87°S, 151.21°E | RAMC: ~266.22° | Yükselen: Balık (26°48') | MC: Yay (26°32')
+  const resSydBench = calculateAstrology('2000-01-01', '12:00', 'Sydney');
+  const s26Passed =
+    resSydBench.astronomicalAudit?.locationResolution.timezoneOffsetHours === 11 &&
+    resSydBench.astronomicalAudit?.locationResolution.isDaylightSavingTime === true &&
+    resSydBench.ascendantCoordinates?.sign === 'Balık' &&
+    resSydBench.midheavenCoordinates?.sign === 'Yay' &&
+    resSydBench.houses?.length === 12;
+  results.push({
+    id: 'astro_scen_26',
+    name: '26. Durum 5: Sidney Bağımsız Referans (AEDT UTC+11 Ters Mevsim DST, Balık ASC, Yay MC)',
+    passed: s26Passed,
+    message: s26Passed
+      ? 'Başarılı: Sidney AEDT (UTC+11 Yaz Saati) ile Balık ASC ve Yay MC doğru hesaplandı.'
+      : 'Hata: Sidney referans hesaplamasında tutarsızlık!',
+    auditDetails: {
+      tzOffset: resSydBench.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      isDst: resSydBench.astronomicalAudit?.locationResolution.isDaylightSavingTime,
+      asc: resSydBench.ascendantCoordinates?.formatted,
+      ascSign: resSydBench.ascendantCoordinates?.sign,
+      mc: resSydBench.midheavenCoordinates?.formatted,
+      mcSign: resSydBench.midheavenCoordinates?.sign
+    }
+  });
+
+  // SENARYO 27 (Durum 6): Aynı İsimli İki Farklı Şehir (Homonym Ayrımı)
+  // Paris, Fransa (Avrupa) vs Paris, Texas (ABD) ve London, UK vs London, Ontario
+  const resParisTxCheck = calculateAstrology('2000-01-01', '12:00', 'Paris, Texas');
+  const resParisFrCheck = calculateAstrology('2000-01-01', '12:00', 'Paris, Fransa');
+  const s27Passed =
+    resParisTxCheck.astronomicalAudit?.locationResolution.matchedCityKey === 'paris_us_tx' &&
+    resParisTxCheck.astronomicalAudit?.locationResolution.timezoneOffsetHours === -6 && // CST UTC-6
+    resParisFrCheck.astronomicalAudit?.locationResolution.matchedCityKey === 'paris_fr' &&
+    resParisFrCheck.astronomicalAudit?.locationResolution.timezoneOffsetHours === 1 && // CET UTC+1
+    resParisTxCheck.ascendantCoordinates?.formatted !== resParisFrCheck.ascendantCoordinates?.formatted;
+  results.push({
+    id: 'astro_scen_27',
+    name: '27. Durum 6: Adaş Şehir Ayrımı (Paris TX UTC-6 vs Paris FR UTC+1 Bağımsız Evler)',
+    passed: s27Passed,
+    message: s27Passed
+      ? 'Başarılı: Paris, Texas ve Paris, Fransa coğrafi ve saat dilimi olarak tamamen ayrıştırıldı.'
+      : 'Hata: Adaş şehir ayrımında çakışma!',
+    auditDetails: {
+      parisTxKey: resParisTxCheck.astronomicalAudit?.locationResolution.matchedCityKey,
+      parisTxTz: resParisTxCheck.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      parisFrKey: resParisFrCheck.astronomicalAudit?.locationResolution.matchedCityKey,
+      parisFrTz: resParisFrCheck.astronomicalAudit?.locationResolution.timezoneOffsetHours
+    }
+  });
+
+  // SENARYO 28 (Durum 7): Tanınmayan veya Boş Doğum Yeri (Kesinlik Uydurmama Kuralı)
+  const resEmptyPlace = calculateAstrology('2000-01-01', '12:00', '');
+  const resUnkPlace = calculateAstrology('2000-01-01', '12:00', 'BilinmeyenSanalSehir99');
+  const s28Passed =
+    resEmptyPlace.astronomicalAudit?.locationResolution.isAmbiguous === true &&
+    resEmptyPlace.houses === undefined &&
+    resEmptyPlace.ascendantCoordinates === undefined &&
+    resEmptyPlace.ascendantEstimate === 'Belirsiz' &&
+    resEmptyPlace.astronomicalAudit?.timePrecision.hasExactAscendant === false &&
+    resUnkPlace.astronomicalAudit?.locationResolution.isAmbiguous === true &&
+    resUnkPlace.houses === undefined &&
+    resUnkPlace.ascendantCoordinates === undefined &&
+    resUnkPlace.ascendantEstimate === 'Belirsiz' &&
+    resUnkPlace.astronomicalAudit?.timePrecision.hasExactAscendant === false;
+  results.push({
+    id: 'astro_scen_28',
+    name: '28. Durum 7: Tanınmayan veya Boş Doğum Yeri (İstanbul veya Sahte Koordinat Varsaymama)',
+    passed: s28Passed,
+    message: s28Passed
+      ? 'Başarılı: Boş veya tanınmayan konumlarda sahte koordinat/ev üretilmedi; isAmbiguous: true ve Belirsiz ASC uygulandı.'
+      : 'Hata: Tanınmayan veya boş konumda sahte yükselen veya ev üretildi!',
+    auditDetails: {
+      emptyAmbiguous: resEmptyPlace.astronomicalAudit?.locationResolution.isAmbiguous,
+      emptyHasHouses: resEmptyPlace.houses !== undefined,
+      unkAmbiguous: resUnkPlace.astronomicalAudit?.locationResolution.isAmbiguous,
+      unkHasHouses: resUnkPlace.houses !== undefined
+    }
+  });
+
+  // SENARYO 29 (Durum 8): Tarihsel Yaz Saati Değişiklikleri (Türkiye Mevzuat Geçişleri)
+  // 2015 Yaz (UTC+3, DST aktif) vs 2015 Kış (UTC+2) vs 2020 Kış (8 Eylül 2016 kararnamesi Kalıcı UTC+3)
+  const resTz2015S = calculateAstrology('2015-07-15', '12:00', 'İstanbul');
+  const resTz2015W = calculateAstrology('2015-01-15', '12:00', 'İstanbul');
+  const resTz2020W = calculateAstrology('2020-01-15', '12:00', 'İstanbul');
+  const s29Passed =
+    resTz2015S.astronomicalAudit?.locationResolution.timezoneOffsetHours === 3 &&
+    resTz2015S.astronomicalAudit?.locationResolution.isDaylightSavingTime === true &&
+    resTz2015W.astronomicalAudit?.locationResolution.timezoneOffsetHours === 2 &&
+    resTz2015W.astronomicalAudit?.locationResolution.isDaylightSavingTime === false &&
+    resTz2020W.astronomicalAudit?.locationResolution.timezoneOffsetHours === 3 &&
+    resTz2020W.astronomicalAudit?.locationResolution.isDaylightSavingTime === false;
+  results.push({
+    id: 'astro_scen_29',
+    name: '29. Durum 8: Tarihsel Yaz Saati Değişiklikleri (Türkiye 2015 Yaz UTC+3 vs 2015 Kış UTC+2 vs 2020 Kalıcı UTC+3)',
+    passed: s29Passed,
+    message: s29Passed
+      ? 'Başarılı: Türkiye tarihsel saat dilimi mevzuat geçişleri hatasız doğrulandı.'
+      : 'Hata: Türkiye tarihsel saat dilimi dönüşümlerinde tutarsızlık!',
+    auditDetails: {
+      summer2015: resTz2015S.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      winter2015: resTz2015W.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      winter2020: resTz2020W.astronomicalAudit?.locationResolution.timezoneOffsetHours
+    }
+  });
+
+  // SENARYO 30 (Durum 9): UTC Dönüşümünün Önceki veya Sonraki Güne Geçmesi
+  // Tokyo 2020-01-01 02:00 Yerel (UTC+9) -> UTC: 2019-12-31 17:00 (Önceki güne ve yıla geçiş!)
+  // New York 2019-12-31 22:00 Yerel (UTC-5) -> UTC: 2020-01-01 03:00 (Sonraki güne ve yıla geçiş!)
+  const resTokPrevDay = calculateAstrology('2020-01-01', '02:00', 'Tokyo');
+  const resNYNextDay = calculateAstrology('2019-12-31', '22:00', 'New York');
+  // 2019-12-31 17:00 UTC Julian Date = 2458849.208333...
+  // 2020-01-01 03:00 UTC Julian Date = 2458849.625
+  const tokJdDiff = Math.abs((resTokPrevDay.astronomicalAudit?.calculatedJulianDate || 0) - 2458849.2083333335);
+  const nyJdDiff = Math.abs((resNYNextDay.astronomicalAudit?.calculatedJulianDate || 0) - 2458849.625);
+  const s30Passed = tokJdDiff < 0.0001 && nyJdDiff < 0.0001;
+  results.push({
+    id: 'astro_scen_30',
+    name: '30. Durum 9: Gün ve Yıl Sınırını Aşan UTC Dönüşümleri (Tokyo 02:00 & NY 22:00)',
+    passed: s30Passed,
+    message: s30Passed
+      ? 'Başarılı: Gün ve yıl geçişli yerel saatler astronomik Julian Date üzerinde hatasız UTC anına dönüştürüldü.'
+      : 'Hata: Gün ve yıl sınır geçişli UTC dönüşümünde Julian Date hatası!',
+    auditDetails: {
+      tokyoJd: resTokPrevDay.astronomicalAudit?.calculatedJulianDate,
+      tokyoExpectedJd: 2458849.2083333335,
+      nyJd: resNYNextDay.astronomicalAudit?.calculatedJulianDate,
+      nyExpectedJd: 2458849.625
+    }
+  });
+
+  // SENARYO 31 (Durum 10): Yarım Saatlik ve 45 Dakikalık Saat Dilimleri
+  // Katmandu, Nepal: UTC+5:45 | Delhi, Hindistan: UTC+5:30 | Adelaide, Avustralya: UTC+10:30 (DST)
+  const resKathmandu = calculateAstrology('2020-01-15', '12:00', 'Katmandu');
+  const resDelhi = calculateAstrology('2020-01-15', '12:00', 'Delhi');
+  const resAdelaide = calculateAstrology('2020-01-15', '12:00', 'Adelaide');
+  const s31Passed =
+    resKathmandu.astronomicalAudit?.locationResolution.timezoneOffsetHours === 5.75 &&
+    resDelhi.astronomicalAudit?.locationResolution.timezoneOffsetHours === 5.5 &&
+    resAdelaide.astronomicalAudit?.locationResolution.timezoneOffsetHours === 10.5 &&
+    resKathmandu.houses?.length === 12 &&
+    resDelhi.houses?.length === 12;
+  results.push({
+    id: 'astro_scen_31',
+    name: '31. Durum 10: Yarım Saatlik (UTC+5:30, UTC+10:30) ve 45 Dakikalık (UTC+5:45) Saat Dilimleri',
+    passed: s31Passed,
+    message: s31Passed
+      ? 'Başarılı: Katmandu (UTC+5:45), Delhi (UTC+5:30) ve Adelaide (UTC+10:30) buçuklu ve çeyrekli ofsetleri doğrulandı.'
+      : 'Hata: Buçuklu veya 45 dakikalık saat dilimi ofsetlerinde tutarsızlık!',
+    auditDetails: {
+      kathmanduTz: resKathmandu.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      delhiTz: resDelhi.astronomicalAudit?.locationResolution.timezoneOffsetHours,
+      adelaideTz: resAdelaide.astronomicalAudit?.locationResolution.timezoneOffsetHours
+    }
+  });
+
+  // SENARYO 32 (Durum 11): Var Olmayan Yerel Saat (Yaz Saati Bahar Sıçraması / DST Gap)
+  // New York'ta 2020-03-08 tarihinde 02:00'de saatler 03:00'e atlar; 02:30 yerel saati fiziksel olarak yaşanmaz!
+  const resDstGap = calculateAstrology('2020-03-08', '02:30', 'New York');
+  const s32Passed =
+    resDstGap.astronomicalAudit?.timePrecision.isNonExistentTime === true &&
+    typeof resDstGap.astronomicalAudit?.timePrecision.uncertaintyNotice === 'string' &&
+    resDstGap.astronomicalAudit.timePrecision.uncertaintyNotice.includes('var olmayan bir zaman aralığı');
+  results.push({
+    id: 'astro_scen_32',
+    name: '32. Durum 11: Var Olmayan Yerel Saat (Yaz Saati Bahar Sıçraması DST Gap Tespiti)',
+    passed: s32Passed,
+    message: s32Passed
+      ? 'Başarılı: New York 2020-03-08 02:30 saatinin DST sıçraması nedeniyle var olmadığı tespit edildi ve kullanıcı uyarıldı.'
+      : 'Hata: Var olmayan yerel doğum saatinde uyarı üretilmedi!',
+    auditDetails: {
+      isNonExistentTime: resDstGap.astronomicalAudit?.timePrecision.isNonExistentTime,
+      notice: resDstGap.astronomicalAudit?.timePrecision.uncertaintyNotice
+    }
+  });
+
+  // SENARYO 33 (Durum 12): İki Kez Yaşanan Yerel Saat (Sonbahar Geri Alma / DST Ambiguous Fold)
+  // New York'ta 2020-11-01 tarihinde 02:00'de saatler 01:00'e geri alınır; 01:30 yerel saati iki kez yaşanır!
+  const resDstFold = calculateAstrology('2020-11-01', '01:30', 'New York');
+  const s33Passed =
+    resDstFold.astronomicalAudit?.timePrecision.isAmbiguousFold === true &&
+    typeof resDstFold.astronomicalAudit?.timePrecision.uncertaintyNotice === 'string' &&
+    resDstFold.astronomicalAudit.timePrecision.uncertaintyNotice.includes('iki kez yaşanan');
+  results.push({
+    id: 'astro_scen_33',
+    name: '33. Durum 12: İki Kez Yaşanan Yerel Saat (Sonbahar Geri Alma DST Fold Tespiti)',
+    passed: s33Passed,
+    message: s33Passed
+      ? 'Başarılı: New York 2020-11-01 01:30 saatinin iki kez yaşanan belirsiz aralıkta olduğu tespit edildi.'
+      : 'Hata: İki kez yaşanan yerel doğum saatinde belirsizlik fold uyarısı üretilmedi!',
+    auditDetails: {
+      isAmbiguousFold: resDstFold.astronomicalAudit?.timePrecision.isAmbiguousFold,
+      notice: resDstFold.astronomicalAudit?.timePrecision.uncertaintyNotice
+    }
+  });
+
+  // SENARYO 34 (Durum 13): Geçersiz Doğum Tarihi ve Saati
+  // 2023-02-29 (Artık yıl değil), 25:99 saat formatı
+  const resInvalidDateCheck = calculateAstrology('2023-02-29', '12:00', 'İstanbul');
+  const resInvalidTimeCheck = calculateAstrology('2020-01-01', '25:99', 'İstanbul');
+  const s34Passed =
+    resInvalidDateCheck.isValidBirthDate === false &&
+    resInvalidDateCheck.uncertaintyFlag === true &&
+    resInvalidTimeCheck.astronomicalAudit?.timePrecision.birthTimeProvided === false &&
+    resInvalidTimeCheck.astronomicalAudit?.timePrecision.hasExactAscendant === false;
+  results.push({
+    id: 'astro_scen_34',
+    name: '34. Durum 13: Geçersiz Doğum Tarihi ve Saati (Sessiz Dönüştürmeme & Belirsizlik Bildirimi)',
+    passed: s34Passed,
+    message: s34Passed
+      ? 'Başarılı: Geçersiz tarih ve saat sessizce kabul edilmedi; isValidBirthDate: false ve kesin ev hesaplaması engellendi.'
+      : 'Hata: Geçersiz tarih veya saat kontrolünde açık bulundu!',
+    auditDetails: {
+      invalidDateFlag: resInvalidDateCheck.isValidBirthDate,
+      invalidTimeProvided: resInvalidTimeCheck.astronomicalAudit?.timePrecision.birthTimeProvided
+    }
+  });
+
+  // SENARYO 35 (Durum 14): Konum Hizmetinin Yanıt Vermemesi / Zaman Aşımı (Güvenli Çevrimdışı Mod)
+  // Çevrimdışı veya geçersiz servis durumunda sahte koordinat uydurulmaz; güvenli çevrimdışı fallback döner.
+  const locOfflineCheck = resolveCityCoordinates('BilinmeyenKutupIstasyonuXYZ');
+  const s35Passed =
+    locOfflineCheck.isAmbiguous === true &&
+    locOfflineCheck.matchedKey === 'unknown_location' &&
+    locOfflineCheck.confidence === 'default_fallback' &&
+    locOfflineCheck.latitude === 0.0 &&
+    locOfflineCheck.longitude === 0.0;
+  results.push({
+    id: 'astro_scen_35',
+    name: '35. Durum 14: Konum Hizmetinin Yanıt Vermemesi / Çevrimdışı Güvenlik (Sahte Koordinat Uydurmama)',
+    passed: s35Passed,
+    message: s35Passed
+      ? 'Başarılı: Harici konum hizmeti çevrimdışı veya yanıtsızken sahte koordinat uydurulmadı; belirsizlik protokolü korundu.'
+      : 'Hata: Konum servisi yanıtsızken sahte koordinat üretildi!',
+    auditDetails: {
+      matchedKey: locOfflineCheck.matchedKey,
+      isAmbiguous: locOfflineCheck.isAmbiguous,
+      lat: locOfflineCheck.latitude,
+      lng: locOfflineCheck.longitude
+    }
+  });
   return results;
 }

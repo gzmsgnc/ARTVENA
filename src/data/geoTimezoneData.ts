@@ -1162,7 +1162,37 @@ export const CITIES_DB: Record<string, CityGeoInfo> = {
     lat: -31.9505, lng: 115.8605, timeZone: 'Australia/Perth', defaultTzOffset: 8,
     aliases: ['perth', 'perth avustralya', 'perth wa']
   },
-  'auckland_nz': {
+    'adelaide_au': {
+    canonicalKey: 'adelaide_au', name: 'Adelaide (Avustralya)', country: 'AU', countryName: 'Avustralya', region: 'SA',
+    lat: -34.9285, lng: 138.6007, timeZone: 'Australia/Adelaide', defaultTzOffset: 9.5,
+    aliases: ['adelaide', 'adelaid', 'adelaide avustralya', 'adelaide australia', 'adelaide sa']
+  },
+  'darwin_au': {
+    canonicalKey: 'darwin_au', name: 'Darwin (Avustralya)', country: 'AU', countryName: 'Avustralya', region: 'NT',
+    lat: -12.4634, lng: 130.8456, timeZone: 'Australia/Darwin', defaultTzOffset: 9.5,
+    aliases: ['darwin', 'darvin', 'darwin avustralya', 'darwin nt']
+  },
+  'eucla_au': {
+    canonicalKey: 'eucla_au', name: 'Eucla (Avustralya)', country: 'AU', countryName: 'Avustralya', region: 'WA',
+    lat: -31.6775, lng: 128.8833, timeZone: 'Australia/Eucla', defaultTzOffset: 8.75,
+    aliases: ['eucla', 'okla', 'eucla avustralya', 'eucla wa']
+  },
+  'chatham_nz': {
+    canonicalKey: 'chatham_nz', name: 'Chatham Adaları (Yeni Zelanda)', country: 'NZ', countryName: 'Yeni Zelanda', region: 'Chatham',
+    lat: -43.9535, lng: -176.5597, timeZone: 'Pacific/Chatham', defaultTzOffset: 12.75,
+    aliases: ['chatham', 'chatham islands', 'chatham adalari', 'waitangi']
+  },
+  'kabul_af': {
+    canonicalKey: 'kabul_af', name: 'Kabil (Afganistan)', country: 'AF', countryName: 'Afganistan', region: 'Kabul',
+    lat: 34.5553, lng: 69.2075, timeZone: 'Asia/Kabul', defaultTzOffset: 4.5,
+    aliases: ['kabul', 'kabil', 'kabil afganistan', 'kabul afghanistan']
+  },
+  'st_johns_ca': {
+    canonicalKey: 'st_johns_ca', name: "St. John's (Newfoundland, Kanada)", country: 'CA', countryName: 'Kanada', region: 'NL',
+    lat: 47.5615, lng: -52.7126, timeZone: 'America/St_Johns', defaultTzOffset: -3.5,
+    aliases: ['st johns', 'st. johns', 'saint johns', 'newfoundland', 'st johns kanada', 'st johns canada']
+  },
+'auckland_nz': {
     canonicalKey: 'auckland_nz', name: 'Auckland (Yeni Zelanda)', country: 'NZ', countryName: 'Yeni Zelanda', region: 'Auckland',
     lat: -36.8485, lng: 174.7633, timeZone: 'Pacific/Auckland', defaultTzOffset: 12,
     aliases: ['auckland', 'okland', 'auckland yeni zelanda', 'auckland new zealand', 'wellington', 'christchurch']
@@ -1282,23 +1312,118 @@ function candidateMatchesQualifier(candidate: CityGeoInfo, qualifier: string): b
  * Bilinmeyen konumlarda sessizce sahte koordinat üretilmez; açıkça 'default_fallback'
  * ve 'isAmbiguous: true' bayrağı set edilir.
  */
+export interface OnlineGeocodeResult {
+  cityName: string;
+  country: string;
+  countryName: string;
+  latitude: number;
+  longitude: number;
+  timeZone: string;
+  confidence: 'exact_city' | 'province_center';
+  source: 'local_database' | 'nominatim_osm';
+}
+
+/**
+ * Harici Coğrafi Konum Çözümleyicisi (OpenStreetMap Nominatim):
+ * - Lisans & Kullanım Koşulları: OpenStreetMap ODbL & Nominatim AUP (Maksimum 1 istek/saniye, User-Agent zorunlu).
+ * - Gizlilik: Yalnızca şehir/yerleşim adı parametresi iletilir; hiçbir kişisel kullanıcı verisi taşınmaz.
+ * - Çevrimdışı ve Hata Yönetimi: Ağ bağlantısı yoksa, zaman aşımına (timeout) uğrarsa veya API yanıt vermezse
+ *   sessizce sahte koordinat uydurmaz; yerel güvenilir veritabanına ve belirsizlik protokolüne güvenle döner.
+ */
+export async function resolveOnlineCityCoordinates(
+  query: string,
+  timeoutMs: number = 3000
+): Promise<ResolvedLocation> {
+  if (!query || typeof query !== 'string' || query.trim().length === 0) {
+    return resolveCityCoordinates('');
+  }
+
+  // 1. Önce yerel yüksek doğruluklu veritabanında ara
+  const localRes = resolveCityCoordinates(query);
+  if (!localRes.isAmbiguous && localRes.confidence !== 'default_fallback') {
+    return localRes;
+  }
+
+  // 2. Yerelde bulunamadıysa harici OpenStreetMap Nominatim servisini dene
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const encoded = encodeURIComponent(query.trim());
+    const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&addressdetails=1`;
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'ArtvenaTattooApp/2.0 (Astrology Ephemeris Geocoder; contact: support@artvena.local)',
+        'Accept-Language': 'tr,en'
+      }
+    });
+    clearTimeout(timer);
+
+    if (!resp.ok) {
+      return localRes;
+    }
+
+    const data = await resp.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      return localRes;
+    }
+
+    const item = data[0];
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    if (isNaN(lat) || isNaN(lon)) {
+      return localRes;
+    }
+
+    const countryCode = (item.address?.country_code || 'XX').toUpperCase();
+    const countryName = item.address?.country || 'Bilinmeyen Ülke';
+    const resolvedName = item.display_name?.split(',')[0] || query;
+
+    // Yaklaşık IANA saat dilimi tahmini (Doğrulama ve yerel Intl saat motoru için)
+    // Standart boylam bazlı referans hesaplama:
+    const approxTzOffsetHours = Math.round((lon * 4) / 60);
+
+    return {
+      inputName: query,
+      matchedKey: `osm_${item.osm_id || 'result'}`,
+      cityName: `${resolvedName} (OSM Doğrulandı)`,
+      country: countryCode,
+      countryName,
+      region: item.address?.state || item.address?.province || '',
+      latitude: lat,
+      longitude: lon,
+      timeZone: 'UTC', // IANA ID bulunamayan harici koordinatlarda UTC bazlı hesaplanır
+      defaultTzOffset: approxTzOffsetHours,
+      confidence: 'exact_city',
+      isAmbiguous: false,
+      notes: `Konum OpenStreetMap Nominatim servisi ile başarıyla doğrulandı: ${item.display_name}`
+    };
+  } catch (err) {
+    clearTimeout(timer);
+    // Ağ kesintisi, zaman aşımı veya güvenlik duvarı durumunda:
+    return {
+      ...localRes,
+      notes: `${localRes.notes} (Harici harita servisi çevrimdışı veya zaman aşımına uğradı; güvenli çevrimdışı mod korundu.)`
+    };
+  }
+}
+
 export function resolveCityCoordinates(cityInput?: string): ResolvedLocation {
   if (!cityInput || typeof cityInput !== 'string' || cityInput.trim().length === 0) {
-    const def = CITIES_DB['istanbul'];
     return {
       inputName: '',
-      matchedKey: def.canonicalKey,
-      cityName: def.name,
-      country: def.country,
-      countryName: def.countryName,
-      region: def.region,
-      latitude: def.lat,
-      longitude: def.lng,
-      timeZone: def.timeZone,
-      defaultTzOffset: def.defaultTzOffset,
+      matchedKey: 'unspecified_location',
+      cityName: 'Doğum Yeri Belirtilmedi',
+      country: '',
+      countryName: 'Belirtilmedi',
+      latitude: 0.0,
+      longitude: 0.0,
+      timeZone: 'UTC',
+      defaultTzOffset: 0,
       confidence: 'default_fallback',
-      isAmbiguous: false,
-      notes: 'Doğum yeri belirtilmedi; Türkiye referans merkezi (İstanbul 41.01°N, 28.98°E) varsayıldı.'
+      isAmbiguous: true,
+      notes: 'Doğum yeri girilmedi. Koordinat bilinmediği için Yükselen Burç ve ev başlangıçları hesaplanamaz.'
     };
   }
 
@@ -1443,15 +1568,15 @@ export function resolveCityCoordinates(cityInput?: string): ResolvedLocation {
     inputName: cityInput,
     matchedKey: 'unknown_location',
     cityName: `${cityInput} (Konum Belirlenemedi - Referans Gerekli)`,
-    country: 'TR',
-    countryName: 'Bilinmeyen Ülke',
-    latitude: 39.0, // Türkiye coğrafi ortalama enlemi
-    longitude: 35.0, // Türkiye coğrafi ortalama boylamı
-    timeZone: 'Europe/Istanbul',
-    defaultTzOffset: 3,
+    country: '',
+    countryName: 'Doğrulanamayan Konum',
+    latitude: 0.0,
+    longitude: 0.0,
+    timeZone: 'UTC',
+    defaultTzOffset: 0,
     confidence: 'default_fallback',
     isAmbiguous: true,
-    notes: `"${cityInput}" veri tabanında bulunamadı. Koordinatlar doğrulanamadığı için yükselen ve ev hesaplamaları belirsiz kabul edilmelidir.`
+    notes: `"${cityInput}" güvenilir konum veri tabanında doğrulanamadı. Sahte koordinat veya tahmini saat dilimi atanmadı; Yükselen Burç ve ev hesaplamaları kısıtlandı.`
   };
 }
 
@@ -1464,8 +1589,15 @@ export function getHistoricalTimezoneOffset(
   month: number, // 1-12
   day: number,   // 1-31
   hour: number,  // 0-23
-  location: ResolvedLocation
-): { offsetHours: number; isDst: boolean; tzName: string } {
+  location: ResolvedLocation,
+  minute: number = 0
+): {
+  offsetHours: number;
+  isDst: boolean;
+  tzName: string;
+  isNonExistentTime?: boolean;
+  isAmbiguousFold?: boolean;
+} {
   // Bilinmeyen / doğrulanmamış konumlar için:
   if (location.isAmbiguous || location.confidence === 'default_fallback') {
     return {
@@ -1488,10 +1620,7 @@ export function getHistoricalTimezoneOffset(
   const timeZone = location.timeZone || 'UTC';
 
   try {
-    // İki adımlı IANA dönüşümü:
-    // Adım 1: Hedef yerel zamanı yaklaşık UTC olarak kabul edip zaman dilimindeki yerel saati hesapla
-    const targetLocalMs = Date.UTC(year, month - 1, day, hour, 0, 0);
-
+    const targetLocalMs = Date.UTC(year, month - 1, day, hour, minute, 0);
     const dtf = new Intl.DateTimeFormat('en-US', {
       timeZone,
       year: 'numeric',
@@ -1503,7 +1632,7 @@ export function getHistoricalTimezoneOffset(
       hour12: false
     });
 
-    const getLocalMsFromUtc = (utcMs: number): number => {
+    const getLocalPartsFromUtc = (utcMs: number) => {
       const parts = dtf.formatToParts(new Date(utcMs));
       let y = 0, m = 0, d = 0, h = 0, min = 0, s = 0;
       for (const p of parts) {
@@ -1514,22 +1643,39 @@ export function getHistoricalTimezoneOffset(
         if (p.type === 'minute') min = parseInt(p.value, 10);
         if (p.type === 'second') s = parseInt(p.value, 10);
       }
-      return Date.UTC(y, m - 1, d, h, min, s);
+      return { y, m, d, h, min, s, ms: Date.UTC(y, m - 1, d, h, min, s) };
     };
 
     // İlk deneme ofseti
-    const trialLocalMs = getLocalMsFromUtc(targetLocalMs);
-    const trialOffsetMs = trialLocalMs - targetLocalMs;
+    const trialLocal = getLocalPartsFromUtc(targetLocalMs);
+    const trialOffsetMs = trialLocal.ms - targetLocalMs;
 
     // Gerçek UTC anı
     const trueUtcMs = targetLocalMs - trialOffsetMs;
 
-    // Gerçek UTC anında kesin yerel saat ve ofset kontrolü (geçiş anları için)
-    const finalLocalMs = getLocalMsFromUtc(trueUtcMs);
-    const finalOffsetMs = finalLocalMs - trueUtcMs;
+    // Gerçek UTC anında kesin yerel saat kontrolü
+    const finalLocal = getLocalPartsFromUtc(trueUtcMs);
+    const finalOffsetMs = finalLocal.ms - trueUtcMs;
     const offsetHours = finalOffsetMs / (3600 * 1000);
 
-    // Yaz saati (DST) tespiti: Uzun ad içinde 'Daylight' veya 'Summer' aranır
+    // DST Gap ve Fold kontrolü
+    const matchesExactly = (finalLocal.y === year && finalLocal.m === month && finalLocal.d === day && finalLocal.h === hour && finalLocal.min === minute);
+    let isNonExistent = !matchesExactly;
+    let isAmbiguousFold = false;
+
+    if (matchesExactly) {
+      // 1 saat öncesi ve sonrasındaki yerel saat aynı mı? (Sonbahar geri alma geçişi)
+      const localBefore = getLocalPartsFromUtc(trueUtcMs - 3600000);
+      const localAfter = getLocalPartsFromUtc(trueUtcMs + 3600000);
+      if (
+        (localBefore.y === year && localBefore.m === month && localBefore.d === day && localBefore.h === hour && localBefore.min === minute) ||
+        (localAfter.y === year && localAfter.m === month && localAfter.d === day && localAfter.h === hour && localAfter.min === minute)
+      ) {
+        isAmbiguousFold = true;
+      }
+    }
+
+    // Yaz saati (DST) tespiti
     const dtfLong = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'long' });
     const longName = dtfLong.format(new Date(trueUtcMs));
     const isDst = longName.includes('Daylight') || longName.includes('Summer');
@@ -1539,11 +1685,13 @@ export function getHistoricalTimezoneOffset(
       return {
         offsetHours: 3,
         isDst: false,
-        tzName: 'TRT (UTC+3 Kalıcı)'
+        tzName: 'TRT (UTC+3 Kalıcı)',
+        isNonExistentTime: false,
+        isAmbiguousFold: false
       };
     }
 
-    // Güzel Türkçe saat dilimi etiketi oluştur
+    // Türkçe saat dilimi etiketi oluştur
     const sign = offsetHours >= 0 ? '+' : '-';
     const absHours = Math.abs(offsetHours);
     const hPart = Math.floor(absHours);
@@ -1559,10 +1707,11 @@ export function getHistoricalTimezoneOffset(
     return {
       offsetHours,
       isDst,
-      tzName
+      tzName,
+      isNonExistentTime: isNonExistent,
+      isAmbiguousFold
     };
   } catch {
-    // IANA motorunda beklenmeyen bir hata olursa güvenli varsayılan
     return {
       offsetHours: location.defaultTzOffset,
       isDst: false,

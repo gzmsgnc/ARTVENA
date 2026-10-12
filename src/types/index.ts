@@ -114,6 +114,8 @@ export interface AstrologyAstronomicalAudit {
     birthTimeProvided: boolean;
     hasExactAscendant: boolean;
     uncertaintyNotice?: string;
+    isNonExistentTime?: boolean;
+    isAmbiguousFold?: boolean;
   };
 }
 
