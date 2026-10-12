@@ -1334,57 +1334,332 @@ export interface OnlineGeocodeResult {
  * Verilen koordinat ve ülke için en uygun IANA saat dilimini belirler.
  * CITIES_DB üzerindeki küresel coğrafi referansları ve bilinen ülke haritalarını kullanır.
  */
+/**
+ * IANA Time Zone Database (Release 2024b / tzdb) & ISO 3166-1 Bölgesel Referans Verisi.
+ * Tek zaman dilimine sahip ülkelerin kesin IANA saat dilimi haritası:
+ */
+export const SINGLE_TIMEZONE_COUNTRIES_IANA: Record<string, { timeZone: string; defaultTzOffset: number }> = {
+  // Avrupa & Kafkaslar
+  'TR': { timeZone: 'Europe/Istanbul', defaultTzOffset: 3 },
+  'GB': { timeZone: 'Europe/London', defaultTzOffset: 0 },
+  'UK': { timeZone: 'Europe/London', defaultTzOffset: 0 },
+  'FR': { timeZone: 'Europe/Paris', defaultTzOffset: 1 },
+  'DE': { timeZone: 'Europe/Berlin', defaultTzOffset: 1 },
+  'IT': { timeZone: 'Europe/Rome', defaultTzOffset: 1 },
+  'ES': { timeZone: 'Europe/Madrid', defaultTzOffset: 1 },
+  'NL': { timeZone: 'Europe/Amsterdam', defaultTzOffset: 1 },
+  'BE': { timeZone: 'Europe/Brussels', defaultTzOffset: 1 },
+  'CH': { timeZone: 'Europe/Zurich', defaultTzOffset: 1 },
+  'AT': { timeZone: 'Europe/Vienna', defaultTzOffset: 1 },
+  'SE': { timeZone: 'Europe/Stockholm', defaultTzOffset: 1 },
+  'NO': { timeZone: 'Europe/Oslo', defaultTzOffset: 1 },
+  'DK': { timeZone: 'Europe/Copenhagen', defaultTzOffset: 1 },
+  'FI': { timeZone: 'Europe/Helsinki', defaultTzOffset: 2 },
+  'PL': { timeZone: 'Europe/Warsaw', defaultTzOffset: 1 },
+  'CZ': { timeZone: 'Europe/Prague', defaultTzOffset: 1 },
+  'HU': { timeZone: 'Europe/Budapest', defaultTzOffset: 1 },
+  'RO': { timeZone: 'Europe/Bucharest', defaultTzOffset: 2 },
+  'BG': { timeZone: 'Europe/Sofia', defaultTzOffset: 2 },
+  'GR': { timeZone: 'Europe/Athens', defaultTzOffset: 2 },
+  'IE': { timeZone: 'Europe/Dublin', defaultTzOffset: 0 },
+  'IS': { timeZone: 'Atlantic/Reykjavik', defaultTzOffset: 0 },
+  'UA': { timeZone: 'Europe/Kyiv', defaultTzOffset: 2 },
+  'AZ': { timeZone: 'Asia/Baku', defaultTzOffset: 4 },
+  'GE': { timeZone: 'Asia/Tbilisi', defaultTzOffset: 4 },
+  'AM': { timeZone: 'Asia/Yerevan', defaultTzOffset: 4 },
+
+  // Asya & Orta Doğu
+  'JP': { timeZone: 'Asia/Tokyo', defaultTzOffset: 9 },
+  'KR': { timeZone: 'Asia/Seoul', defaultTzOffset: 9 },
+  'IN': { timeZone: 'Asia/Kolkata', defaultTzOffset: 5.5 },
+  'NP': { timeZone: 'Asia/Kathmandu', defaultTzOffset: 5.75 },
+  'LK': { timeZone: 'Asia/Colombo', defaultTzOffset: 5.5 },
+  'BD': { timeZone: 'Asia/Dhaka', defaultTzOffset: 6 },
+  'PK': { timeZone: 'Asia/Karachi', defaultTzOffset: 5 },
+  'AF': { timeZone: 'Asia/Kabul', defaultTzOffset: 4.5 },
+  'IR': { timeZone: 'Asia/Tehran', defaultTzOffset: 3.5 },
+  'IQ': { timeZone: 'Asia/Baghdad', defaultTzOffset: 3 },
+  'SA': { timeZone: 'Asia/Riyadh', defaultTzOffset: 3 },
+  'AE': { timeZone: 'Asia/Dubai', defaultTzOffset: 4 },
+  'IL': { timeZone: 'Asia/Jerusalem', defaultTzOffset: 2 },
+  'TH': { timeZone: 'Asia/Bangkok', defaultTzOffset: 7 },
+  'VN': { timeZone: 'Asia/Bangkok', defaultTzOffset: 7 },
+  'PH': { timeZone: 'Asia/Manila', defaultTzOffset: 8 },
+  'SG': { timeZone: 'Asia/Singapore', defaultTzOffset: 8 },
+  'MY': { timeZone: 'Asia/Kuala_Lumpur', defaultTzOffset: 8 },
+  'CN': { timeZone: 'Asia/Shanghai', defaultTzOffset: 8 }, // Çin ulusal tek resmi saat dilimi (UTC+8)
+
+  // Afrika
+  'EG': { timeZone: 'Africa/Cairo', defaultTzOffset: 2 },
+  'ZA': { timeZone: 'Africa/Johannesburg', defaultTzOffset: 2 },
+  'NG': { timeZone: 'Africa/Lagos', defaultTzOffset: 1 },
+  'KE': { timeZone: 'Africa/Nairobi', defaultTzOffset: 3 },
+  'MA': { timeZone: 'Africa/Casablanca', defaultTzOffset: 1 },
+  'DZ': { timeZone: 'Africa/Algiers', defaultTzOffset: 1 },
+  'TN': { timeZone: 'Africa/Tunis', defaultTzOffset: 1 },
+  'ET': { timeZone: 'Africa/Addis_Ababa', defaultTzOffset: 3 },
+
+  // Amerika & Latin
+  'CO': { timeZone: 'America/Bogota', defaultTzOffset: -5 },
+  'PE': { timeZone: 'America/Lima', defaultTzOffset: -5 },
+  'VE': { timeZone: 'America/Caracas', defaultTzOffset: -4 },
+  'AR': { timeZone: 'America/Argentina/Buenos_Aires', defaultTzOffset: -3 },
+  'CL': { timeZone: 'America/Santiago', defaultTzOffset: -4 },
+  'CR': { timeZone: 'America/Costa_Rica', defaultTzOffset: -6 },
+  'CU': { timeZone: 'America/Havana', defaultTzOffset: -5 },
+  'UY': { timeZone: 'America/Montevideo', defaultTzOffset: -3 }
+};
+
+/**
+ * Birden fazla saat dilimi (Multi-Timezone) bulunan ülkelerin eyalet / idari bölge IANA haritası:
+ * ABD (US), Kanada (CA), Avustralya (AU), Rusya (RU), Brezilya (BR)
+ */
+export const MULTI_TZ_REGIONS_IANA: Record<string, Record<string, { timeZone: string; defaultTzOffset: number }>> = {
+  // ABD (US)
+  'US': {
+    // Doğu (Eastern - America/New_York - UTC-5)
+    'new york': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'ny': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'florida': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'fl': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'massachusetts': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'ma': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'pennsylvania': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'pa': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'district of columbia': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'dc': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'virginia': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'va': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'georgia': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'ga': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'north carolina': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'nc': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'ohio': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'oh': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'michigan': { timeZone: 'America/Detroit', defaultTzOffset: -5 },
+    'mi': { timeZone: 'America/Detroit', defaultTzOffset: -5 },
+    'new jersey': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+    'nj': { timeZone: 'America/New_York', defaultTzOffset: -5 },
+
+    // Merkezi (Central - America/Chicago - UTC-6)
+    'illinois': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'il': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'texas': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'tx': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'minnesota': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'mn': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'missouri': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'mo': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'wisconsin': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'wi': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'louisiana': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+    'la': { timeZone: 'America/Chicago', defaultTzOffset: -6 },
+
+    // Dağlık (Mountain - America/Denver - UTC-7 / Phoenix UTC-7 no DST)
+    'colorado': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'co': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'arizona': { timeZone: 'America/Phoenix', defaultTzOffset: -7 },
+    'az': { timeZone: 'America/Phoenix', defaultTzOffset: -7 },
+    'utah': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'ut': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'new mexico': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'nm': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'montana': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+    'mt': { timeZone: 'America/Denver', defaultTzOffset: -7 },
+
+    // Pasifik (Pacific - America/Los_Angeles - UTC-8)
+    'california': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'ca': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'washington': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'wa': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'oregon': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'or': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'nevada': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+    'nv': { timeZone: 'America/Los_Angeles', defaultTzOffset: -8 },
+
+    // Alaska & Hawaii
+    'alaska': { timeZone: 'America/Anchorage', defaultTzOffset: -9 },
+    'ak': { timeZone: 'America/Anchorage', defaultTzOffset: -9 },
+    'hawaii': { timeZone: 'Pacific/Honolulu', defaultTzOffset: -10 },
+    'hi': { timeZone: 'Pacific/Honolulu', defaultTzOffset: -10 }
+  },
+
+  // KANADA (CA)
+  'CA': {
+    'ontario': { timeZone: 'America/Toronto', defaultTzOffset: -5 },
+    'on': { timeZone: 'America/Toronto', defaultTzOffset: -5 },
+    'quebec': { timeZone: 'America/Montreal', defaultTzOffset: -5 },
+    'qc': { timeZone: 'America/Montreal', defaultTzOffset: -5 },
+    'british columbia': { timeZone: 'America/Vancouver', defaultTzOffset: -8 },
+    'bc': { timeZone: 'America/Vancouver', defaultTzOffset: -8 },
+    'alberta': { timeZone: 'America/Edmonton', defaultTzOffset: -7 },
+    'ab': { timeZone: 'America/Edmonton', defaultTzOffset: -7 },
+    'manitoba': { timeZone: 'America/Winnipeg', defaultTzOffset: -6 },
+    'mb': { timeZone: 'America/Winnipeg', defaultTzOffset: -6 },
+    'saskatchewan': { timeZone: 'America/Regina', defaultTzOffset: -6 },
+    'sk': { timeZone: 'America/Regina', defaultTzOffset: -6 },
+    'nova scotia': { timeZone: 'America/Halifax', defaultTzOffset: -4 },
+    'ns': { timeZone: 'America/Halifax', defaultTzOffset: -4 },
+    'newfoundland': { timeZone: 'America/St_Johns', defaultTzOffset: -3.5 },
+    'nl': { timeZone: 'America/St_Johns', defaultTzOffset: -3.5 }
+  },
+
+  // AVUSTRALYA (AU)
+  'AU': {
+    'new south wales': { timeZone: 'Australia/Sydney', defaultTzOffset: 10 },
+    'nsw': { timeZone: 'Australia/Sydney', defaultTzOffset: 10 },
+    'victoria': { timeZone: 'Australia/Melbourne', defaultTzOffset: 10 },
+    'vic': { timeZone: 'Australia/Melbourne', defaultTzOffset: 10 },
+    'queensland': { timeZone: 'Australia/Brisbane', defaultTzOffset: 10 },
+    'qld': { timeZone: 'Australia/Brisbane', defaultTzOffset: 10 },
+    'south australia': { timeZone: 'Australia/Adelaide', defaultTzOffset: 9.5 },
+    'sa': { timeZone: 'Australia/Adelaide', defaultTzOffset: 9.5 },
+    'western australia': { timeZone: 'Australia/Perth', defaultTzOffset: 8 },
+    'wa': { timeZone: 'Australia/Perth', defaultTzOffset: 8 },
+    'northern territory': { timeZone: 'Australia/Darwin', defaultTzOffset: 9.5 },
+    'nt': { timeZone: 'Australia/Darwin', defaultTzOffset: 9.5 },
+    'tasmania': { timeZone: 'Australia/Hobart', defaultTzOffset: 10 },
+    'tas': { timeZone: 'Australia/Hobart', defaultTzOffset: 10 }
+  },
+
+  // BREZİLYA (BR)
+  'BR': {
+    'sao paulo': { timeZone: 'America/Sao_Paulo', defaultTzOffset: -3 },
+    'sp': { timeZone: 'America/Sao_Paulo', defaultTzOffset: -3 },
+    'rio de janeiro': { timeZone: 'America/Sao_Paulo', defaultTzOffset: -3 },
+    'rj': { timeZone: 'America/Sao_Paulo', defaultTzOffset: -3 },
+    'amazonas': { timeZone: 'America/Manaus', defaultTzOffset: -4 },
+    'am': { timeZone: 'America/Manaus', defaultTzOffset: -4 }
+  },
+
+  // RUSYA (RU)
+  'RU': {
+    'moscow': { timeZone: 'Europe/Moscow', defaultTzOffset: 3 },
+    'moskva': { timeZone: 'Europe/Moscow', defaultTzOffset: 3 },
+    'saint petersburg': { timeZone: 'Europe/Moscow', defaultTzOffset: 3 },
+    'sverdlovsk': { timeZone: 'Asia/Yekaterinburg', defaultTzOffset: 5 },
+    'novosibirsk': { timeZone: 'Asia/Novosibirsk', defaultTzOffset: 7 },
+    'primorsky': { timeZone: 'Asia/Vladivostok', defaultTzOffset: 10 }
+  }
+};
+
+/**
+ * Koordinatlar ve opsiyonel ülke/bölge bilgisine göre gerçek IANA saat dilimini
+ * güvenilir ve deterministik biçimde belirler.
+ *
+ * Veri Kaynağı: IANA Time Zone Database (Release 2024b / tzdb) & ISO 3166-1 / ISO 3166-2
+ * Belirsizlik İlkesi: Koordinatların saat dilimi güvenilir biçimde doğrulanamazsa
+ * asla sahte/tahmini bir saat dilimi atanmaz; isAmbiguous: true ve confidence: 'uncertain' döner.
+ */
 export function lookupIanaTimeZoneForCoordinates(
   lat: number,
   lng: number,
-  countryCode?: string
-): { timeZone: string; defaultTzOffset: number } {
-  // 1. Ülke kodu Türkiye ise doğrudan kalıcı UTC+3
-  if (countryCode === 'TR') {
-    return { timeZone: 'Europe/Istanbul', defaultTzOffset: 3 };
-  }
-
-  // 2. Ülke kodu eşleşen en yakın şehir
-  let closestDist = Infinity;
-  let bestCity: CityGeoInfo | null = null;
-
+  countryCode?: string,
+  regionName?: string
+): { timeZone: string; defaultTzOffset: number; isAmbiguous: boolean; confidence: 'exact_zone' | 'country_standard' | 'uncertain' } {
+  // 1. Ülke kodu mevcutsa:
   if (countryCode) {
-    const normCC = countryCode.toUpperCase();
-    for (const c of Object.values(CITIES_DB)) {
-      if (c.country === normCC) {
-        const dLat = c.lat - lat;
-        const dLng = c.lng - lng;
-        const dist = dLat * dLat + dLng * dLng;
-        if (dist < closestDist) {
-          closestDist = dist;
-          bestCity = c;
+    const cc = countryCode.trim().toUpperCase();
+
+    // A. Tek saat dilimli ülke ise doğrudan kanonik IANA saat dilimi
+    if (SINGLE_TIMEZONE_COUNTRIES_IANA[cc]) {
+      const match = SINGLE_TIMEZONE_COUNTRIES_IANA[cc];
+      return {
+        timeZone: match.timeZone,
+        defaultTzOffset: match.defaultTzOffset,
+        isAmbiguous: false,
+        confidence: 'country_standard'
+      };
+    }
+
+    // B. Çoklu saat dilimli ülke ise (US, CA, AU, RU, BR):
+    if (MULTI_TZ_REGIONS_IANA[cc]) {
+      const regMap = MULTI_TZ_REGIONS_IANA[cc];
+
+      // B1. Eyalet/bölge adı verilmişse eşle
+      if (regionName) {
+        const normRegion = normalizeGeoSearchText(regionName);
+        for (const [key, val] of Object.entries(regMap)) {
+          if (normRegion === key || normRegion.includes(key)) {
+            return {
+              timeZone: val.timeZone,
+              defaultTzOffset: val.defaultTzOffset,
+              isAmbiguous: false,
+              confidence: 'exact_zone'
+            };
+          }
         }
       }
-    }
-  }
 
-  // 3. Aynı ülkeden referans bulunamadıysa dünya genelinde en yakın referans nokta
-  if (!bestCity) {
-    closestDist = Infinity;
-    for (const c of Object.values(CITIES_DB)) {
-      const dLat = c.lat - lat;
-      const dLng = c.lng - lng;
-      const dist = dLat * dLat + dLng * dLng;
-      if (dist < closestDist) {
-        closestDist = dist;
-        bestCity = c;
+      // B2. Eyalet ismi yoksa veya eşleşmediyse: Ülke içindeki onaylı şehir veritabanında
+      // sadece AYNI ÜLKE sınırları içerisindeki en yakın referans şehri ve mesafesini kontrol et.
+      // Sınır aşırı veya uzak noktalarda yanlış dilim atanmaması için mesafe eşiği (< 400 km) uygulanır.
+      let closestCountryDist = Infinity;
+      let matchedCountryCity: CityGeoInfo | null = null;
+
+      for (const c of Object.values(CITIES_DB)) {
+        if (c.country === cc) {
+          const dLat = c.lat - lat;
+          const dLng = c.lng - lng;
+          const distSq = dLat * dLat + dLng * dLng;
+          if (distSq < closestCountryDist) {
+            closestCountryDist = distSq;
+            matchedCountryCity = c;
+          }
+        }
       }
+
+      // ~4 derecelik coğrafi açı mesafesi (~400 km) dahilinde aynı ülkeden güvenilir merkez varsa:
+      if (matchedCountryCity && closestCountryDist < 16) {
+        return {
+          timeZone: matchedCountryCity.timeZone,
+          defaultTzOffset: matchedCountryCity.defaultTzOffset,
+          isAmbiguous: false,
+          confidence: 'exact_zone'
+        };
+      }
+
+      // Eyalet belirsiz ve yakında aynı ülkeden kanonik referans yoksa:
+      // KURAL 3: Çoklu saat dilimli ülkede tahmin yürütülmez, açıkça belirsiz olarak işaretlenir.
+      return {
+        timeZone: 'UTC',
+        defaultTzOffset: 0,
+        isAmbiguous: true,
+        confidence: 'uncertain'
+      };
     }
   }
 
-  if (bestCity) {
+  // 2. Ülke kodu yoksa veya tanınmıyorsa:
+  // Dünya genelinde çok yakın (< 50 km / 0.5 derece) bilinen kanonik bir metropol var mı?
+  let closestDist = Infinity;
+  let bestCity: CityGeoInfo | null = null;
+  for (const c of Object.values(CITIES_DB)) {
+    const dLat = c.lat - lat;
+    const dLng = c.lng - lng;
+    const distSq = dLat * dLat + dLng * dLng;
+    if (distSq < closestDist) {
+      closestDist = distSq;
+      bestCity = c;
+    }
+  }
+
+  if (bestCity && closestDist < 0.25) { // < ~50 km
     return {
       timeZone: bestCity.timeZone,
-      defaultTzOffset: bestCity.defaultTzOffset
+      defaultTzOffset: bestCity.defaultTzOffset,
+      isAmbiguous: false,
+      confidence: 'exact_zone'
     };
   }
 
-  return { timeZone: 'UTC', defaultTzOffset: 0 };
+  // KURAL 3: Koordinatlar için saat dilimi güvenilir biçimde doğrulanamıyorsa tahmin yürütülmez.
+  return {
+    timeZone: 'UTC',
+    defaultTzOffset: 0,
+    isAmbiguous: true,
+    confidence: 'uncertain'
+  };
 }
 
 // In-Memory Geocoding Request Cache (Aynı arama için tekrarlı ağ isteklerini engeller)
@@ -1449,7 +1724,8 @@ export async function resolveOnlineCityCoordinates(
     const countryName = item.address?.country || 'Bilinmeyen Ülke';
     const resolvedName = item.display_name?.split(',')[0] || query;
 
-    const tzLookup = lookupIanaTimeZoneForCoordinates(lat, lon, countryCode);
+    const regionName = item.address?.state || item.address?.province || item.address?.region || '';
+    const tzLookup = lookupIanaTimeZoneForCoordinates(lat, lon, countryCode, regionName);
 
     const resolved: ResolvedLocation = {
       inputName: query,
@@ -1457,14 +1733,16 @@ export async function resolveOnlineCityCoordinates(
       cityName: `${resolvedName} (OSM Doğrulandı)`,
       country: countryCode,
       countryName,
-      region: item.address?.state || item.address?.province || '',
+      region: regionName,
       latitude: lat,
       longitude: lon,
       timeZone: tzLookup.timeZone,
       defaultTzOffset: tzLookup.defaultTzOffset,
-      confidence: 'exact_city',
-      isAmbiguous: false,
-      notes: `Konum OpenStreetMap Nominatim servisi ile doğrulandı (IANA: ${tzLookup.timeZone}): ${item.display_name}`
+      confidence: tzLookup.isAmbiguous ? 'default_fallback' : 'exact_city',
+      isAmbiguous: tzLookup.isAmbiguous,
+      notes: tzLookup.isAmbiguous
+        ? `Konum OSM ile bulundu ancak saat dilimi doğrulanamadı (Belirsiz). Sahte saat dilimi atanmadı.`
+        : `Konum OpenStreetMap Nominatim servisi ile doğrulandı (IANA: ${tzLookup.timeZone}): ${item.display_name}`
     };
 
     ONLINE_GEOCODE_CACHE.set(cacheKey, resolved);
