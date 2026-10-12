@@ -370,29 +370,78 @@ export const AnalysisOverviewView: React.FC<AnalysisOverviewViewProps> = ({
               </div>
             </div>
 
-            <div className="p-4 bg-slate-900 border border-slate-800 rounded flex items-center gap-3">
-              <Moon className="w-6 h-6 text-blue-400 shrink-0" />
-              <div className="flex-1">
+            <div className="p-4 bg-slate-900 border border-slate-800 rounded flex items-start gap-3">
+              <Moon className="w-6 h-6 text-blue-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
                 <span className="text-[11px] text-slate-400 block">Ay Burcu (Astronomik)</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-slate-100">{astrology.moonSignEstimate}</span>
-                  {astrology.moonDiurnalRange?.crossesSigns && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
-                      Gün İçi Burç Değişimi
+
+                {/* DURUM A: Doğum Saati BİLİNMİYOR ve Günlük Aralık Verisi Mevcut */}
+                {astrology.moonDiurnalRange && astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed ? (
+                  <div className="space-y-1.5 mt-0.5">
+                    {/* Olası Burçlar Başlığı & Rozetler */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-base font-semibold text-slate-100">
+                        {astrology.moonDiurnalRange.possibleSigns.join(" / ")}
+                      </span>
+                      {astrology.moonDiurnalRange.crossesSigns ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                          Gün İçi Burç Değişimi (Geçiş Uyarısı)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">
+                          Tek Burç (Derece Yaklaşık)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Gün Başı ve Gün Sonu Burç / Derece Aralığı */}
+                    <div className="text-[11px] font-mono text-slate-300 bg-slate-950/70 p-2 rounded border border-slate-800/80 space-y-0.5">
+                      <div className="flex justify-between items-center text-slate-400">
+                        <span>Yerel Gün Başı (00:00):</span>
+                        <span className="text-amber-300/90 font-medium">
+                          {astrology.moonDiurnalRange.startOfDaySign} {astrology.moonDiurnalRange.startOfDayDegreeInSign.toFixed(2)}°
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-400">
+                        <span>Yerel Gün Sonu (24:00):</span>
+                        <span className="text-amber-300/90 font-medium">
+                          {astrology.moonDiurnalRange.endOfDaySign} {astrology.moonDiurnalRange.endOfDayDegreeInSign.toFixed(2)}°
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-400 pt-0.5 border-t border-slate-800/60 text-[10px]">
+                        <span>Günlük Astronomik Hareket:</span>
+                        <span className="text-slate-300">~{astrology.moonDiurnalRange.dailySpanDegrees.toFixed(2)}°</span>
+                      </div>
+                    </div>
+
+                    {/* 12.00 Referansı Yardımcı Bilgi */}
+                    <div className="text-[10px] text-slate-400 flex items-center gap-1.5 pt-0.5">
+                      <span className="text-amber-400 font-medium">12.00 Referansı:</span>
+                      <span className="font-mono text-slate-300">
+                        {astrology.moonSignEstimate} {astrology.moonCoordinates?.formatted || ""}
+                      </span>
+                      <span className="text-slate-500 italic">(Kesin doğum derecesi değildir)</span>
+                    </div>
+
+                    {/* Detaylı Türkçe Açıklama */}
+                    <p className="text-[11px] text-slate-400 leading-relaxed bg-slate-900/60 p-2 rounded border border-slate-800 text-justify">
+                      {astrology.moonDiurnalRange.rangeDescription}
+                    </p>
+                  </div>
+                ) : (
+                  /* DURUM B: Doğum Saati BİLİNİYOR (Mevcut Kesin Saatli Gösterim) */
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-semibold text-slate-100">{astrology.moonSignEstimate}</span>
+                    </div>
+                    <span className="text-[11px] text-blue-400 font-mono block">
+                      {astrology.moonCoordinates?.formatted || "Hesaplandı"}
                     </span>
-                  )}
-                  {astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed && !astrology.moonDiurnalRange?.crossesSigns && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">
-                      12.00 Referansı
+                    <span className="text-[10px] text-slate-500 block">
+                      Duygusal Rezonans & İç Dünya (Kesin Saatli Efemeris)
                     </span>
-                  )}
-                </div>
-                <span className={`text-[11px] font-mono block ${astrology.astronomicalAudit?.timePrecision.isDefaultNoonAssumed ? "text-amber-400/80" : "text-blue-400"}`}>
-                  {astrology.moonCoordinates?.formatted || "Tahmini"}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {astrology.moonDiurnalRange ? `Günlük Hareket: ~${astrology.moonDiurnalRange.dailySpanDegrees.toFixed(1)}°` : "Duygusal Rezonans & İç Dünya"}
-                </span>
+                  </div>
+                )}
               </div>
             </div>
 
