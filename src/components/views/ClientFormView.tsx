@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User, Calendar, Clock, MapPin, Heart, Phone, Mail, FileText, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { User, Calendar, Clock, MapPin, Heart, Phone, Mail, FileText, ArrowRight, ShieldCheck, AlertCircle, Search, Loader2, CheckCircle2 } from 'lucide-react';
+import { resolveCityCoordinates, resolveOnlineCityCoordinates, ResolvedLocation } from '../../data/geoTimezoneData';
 import { ClientData } from '../../types';
 
 interface ClientFormViewProps {
@@ -26,7 +27,62 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [email, setEmail] = useState(initialData?.email || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
+  const [resolvedLocation, setResolvedLocation] = useState<ResolvedLocation | null>(initialData?.resolvedLocation || null);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [locationFeedback, setLocationFeedback] = useState<{ type: 'success' | 'warning' | 'error' | 'idle'; message: string }>({
+    type: 'idle',
+    message: ''
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSearchLocation = async (placeToSearch: string) => {
+    if (!placeToSearch.trim()) {
+      setResolvedLocation(null);
+      setLocationFeedback({ type: 'warning', message: 'Lütfen bir şehir veya yerleşim yeri adı giriniz.' });
+      return;
+    }
+
+    setIsSearchingLocation(true);
+    setLocationFeedback({ type: 'idle', message: 'Konum ve saat dilimi taranıyor...' });
+
+    try {
+      // 1. Önce yerel yüksek doğruluklu veritabanında kontrol et
+      const localRes = resolveCityCoordinates(placeToSearch);
+      if (!localRes.isAmbiguous && localRes.confidence !== 'default_fallback') {
+        setResolvedLocation(localRes);
+        setLocationFeedback({
+          type: 'success',
+          message: `✓ Doğrulandı: ${localRes.cityName} (${localRes.latitude.toFixed(2)}°K, ${localRes.longitude.toFixed(2)}°D, ${localRes.timeZone})`
+        });
+        setIsSearchingLocation(false);
+        return;
+      }
+
+      // 2. Yerelde bulunamazsa çevrim içi OpenStreetMap Nominatim servisini sorgula
+      const onlineRes = await resolveOnlineCityCoordinates(placeToSearch, 3500);
+      setResolvedLocation(onlineRes);
+      if (!onlineRes.isAmbiguous && onlineRes.confidence !== 'default_fallback') {
+        setLocationFeedback({
+          type: 'success',
+          message: `✓ Harici Ağ Üzerinden Doğrulandı: ${onlineRes.cityName} (${onlineRes.timeZone})`
+        });
+      } else {
+        setLocationFeedback({
+          type: 'warning',
+          message: `⚠ Konum doğrulanamadı. Sahte koordinat atanmadı; kesin Yükselen Burç ve evler belirsiz olarak sunulacaktır.`
+        });
+      }
+    } catch {
+      const fallback = resolveCityCoordinates(placeToSearch);
+      setResolvedLocation(fallback);
+      setLocationFeedback({
+        type: 'error',
+        message: 'Ağ bağlantısı sağlanamadı. Güvenli çevrim dışı mod devrede; bilinmeyen konum için sahte değer uydurulmadı.'
+      });
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -67,6 +123,7 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
       motherName: motherName.trim(),
       preferredAstrologySystem,
       preferredHouseSystem,
+      resolvedLocation: resolvedLocation || resolveCityCoordinates(birthPlace),
       phone: phone.trim(),
       email: email.trim(),
       notes: notes.trim(),
@@ -159,13 +216,62 @@ export const ClientFormView: React.FC<ClientFormViewProps> = ({
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
               <span>Doğum Yeri / Şehir</span>
             </label>
-            <input
-              type="text"
-              value={birthPlace}
-              onChange={e => setBirthPlace(e.target.value)}
-              placeholder="Örn: İzmir, Türkiye veya London, UK, New York, Tokyo..."
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-amber-500 focus:outline-none rounded text-slate-100 text-xs"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={birthPlace}
+                onChange={e => {
+                  setBirthPlace(e.target.value);
+                  if (resolvedLocation) setResolvedLocation(null);
+                  if (locationFeedback.type !== 'idle') setLocationFeedback({ type: 'idle', message: '' });
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearchLocation(birthPlace);
+                  }
+                }}
+                placeholder="Örn: İzmir, Türkiye veya London, UK, New York, Reykjavik..."
+                className="flex-1 px-3 py-2 bg-slate-900 border border-slate-800 focus:border-amber-500 focus:outline-none rounded text-slate-100 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => handleSearchLocation(birthPlace)}
+                disabled={isSearchingLocation}
+                className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                title="Konumu ve Tarihsel Saat Dilimini Doğrula"
+              >
+                {isSearchingLocation ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Aranıyor...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Doğrula</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {locationFeedback.message && (
+              <div className={`mt-1.5 p-2 rounded text-[11px] flex items-start gap-1.5 ${
+                locationFeedback.type === 'success'
+                  ? 'bg-emerald-950/40 border border-emerald-900/60 text-emerald-300'
+                  : locationFeedback.type === 'warning'
+                  ? 'bg-amber-950/40 border border-amber-900/60 text-amber-300'
+                  : locationFeedback.type === 'error'
+                  ? 'bg-rose-950/40 border border-rose-900/60 text-rose-300'
+                  : 'bg-slate-900 border border-slate-800 text-slate-400'
+              }`}>
+                {locationFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                )}
+                <span>{locationFeedback.message}</span>
+              </div>
+            )}
           </div>
         </div>
 

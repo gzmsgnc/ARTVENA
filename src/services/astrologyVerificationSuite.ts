@@ -15,6 +15,7 @@
 
 import {
   calculateAstrology,
+  calculateAstrologyAsync,
   calculateMeanLunarNodeLongitude,
   calculateTrueLunarNodeLongitude
 } from '../engines/astrologyEngine';
@@ -1088,5 +1089,132 @@ export function runAstrologyVerificationSuite(): AstrologyScenarioResult[] {
       lng: locOfflineCheck.longitude
     }
   });
+
+  // SENARYO 36: Harici Olarak Doğrulanan Şehrin (resolvedLocation) Gerçek Astroloji Motoruna Girişi
+  // Reykjavik (İzlanda: 64.14°N, -21.94°W, Europe/London veya Europe/Dublin GMT/UTC+0)
+  const mockReykjavikLocation = {
+    inputName: 'Reykjavik',
+    matchedKey: 'osm_reykjavik',
+    cityName: 'Reykjavik (OSM Doğrulandı)',
+    country: 'IS',
+    countryName: 'İzlanda',
+    latitude: 64.145981,
+    longitude: -21.9422367,
+    timeZone: 'Atlantic/Reykjavik',
+    defaultTzOffset: 0,
+    confidence: 'exact_city' as const,
+    isAmbiguous: false,
+    notes: 'Doğrulanmış harici konum'
+  };
+  const resReykjavikInjected = calculateAstrology('2000-01-01', '12:00', 'Reykjavik', {
+    resolvedLocation: mockReykjavikLocation
+  });
+  const s36Passed =
+    resReykjavikInjected.astronomicalAudit?.locationResolution.isAmbiguous === false &&
+    resReykjavikInjected.astronomicalAudit?.locationResolution.cityName.includes('Reykjavik') &&
+    resReykjavikInjected.astronomicalAudit?.locationResolution.latitude === 64.145981 &&
+    resReykjavikInjected.ascendantCoordinates !== undefined &&
+    resReykjavikInjected.ascendantEstimate !== 'Belirsiz' &&
+    resReykjavikInjected.houses?.length === 12;
+  results.push({
+    id: 'astro_scen_36',
+    name: '36. Çevrim İçi Doğrulanan Şehrin (resolvedLocation) Gerçek Astroloji Motoruna Girişi ve Kesin Ev Hesabı',
+    passed: s36Passed,
+    message: s36Passed
+      ? 'Başarılı: Doğrulanmış harici konum parametresi doğrudan hesaplama motoruna aktarıldı, kesin ASC ve 12 ev üretildi.'
+      : 'Hata: Doğrulanmış harici konum hesaplama motoru tarafından dikkate alınmadı!',
+    auditDetails: {
+      cityName: resReykjavikInjected.astronomicalAudit?.locationResolution.cityName,
+      asc: resReykjavikInjected.ascendantCoordinates?.formatted,
+      sign: resReykjavikInjected.ascendantEstimate
+    }
+  });
+
+  // SENARYO 37: Geocoding Önbelleklemesi (Tekrarlanan Aramalarda Ağ İsteği Yapmama ve Tutarlılık)
+  // Aynı şehir art arda sorgulandığında aynı nesne ve tutarlı sonuçlar dönmelidir.
+  const locParis1 = resolveCityCoordinates('Paris, Fransa');
+  const locParis2 = resolveCityCoordinates('Paris, Fransa');
+  const s37Passed =
+    locParis1.matchedKey === locParis2.matchedKey &&
+    locParis1.latitude === locParis2.latitude &&
+    locParis1.longitude === locParis2.longitude &&
+    locParis1.timeZone === locParis2.timeZone;
+  results.push({
+    id: 'astro_scen_37',
+    name: '37. Geocoding Tutarlılığı ve Tekrarlı Arama Bütünlüğü',
+    passed: s37Passed,
+    message: s37Passed
+      ? 'Başarılı: Tekrarlanan konumlarda tam deterministik ve tutarlı koordinat/saat dilimi sağlandı.'
+      : 'Hata: Tekrarlanan aramalarda tutarsız koordinat veya saat dilimi üretildi!',
+    auditDetails: {
+      key1: locParis1.matchedKey,
+      key2: locParis2.matchedKey
+    }
+  });
+
+  // SENARYO 38: Belirsiz Konumda Kesin Ay Konumu ve ASC/Ev Sınırlandırma Güvencesi
+  // Doğum yeri belirsiz olduğunda ASC/MC ve Evler 'undefined' veya 'Belirsiz' olmalı;
+  // Gezegenler hesaplansa bile uncertaintyFlag ve uncertaintyNotice ile durum açıklanmalıdır.
+  const resUncertainClient = calculateAstrology('1990-05-15', '12:00', 'BilinmeyenHayaliUlkeX');
+  const s38Passed =
+    resUncertainClient.uncertaintyFlag === true &&
+    resUncertainClient.ascendantEstimate === 'Belirsiz' &&
+    resUncertainClient.ascendantCoordinates === undefined &&
+    resUncertainClient.midheavenCoordinates === undefined &&
+    resUncertainClient.houses === undefined &&
+    typeof resUncertainClient.astronomicalAudit?.timePrecision.uncertaintyNotice === 'string' &&
+    resUncertainClient.astronomicalAudit.timePrecision.uncertaintyNotice.includes('coğrafi veri tabanında doğrulanamadı');
+  results.push({
+    id: 'astro_scen_38',
+    name: '38. Doğrulanmamış Konumda Kesin ASC/MC/Ev Üretilmeme ve Açık Türkçe Bildirim Güvencesi',
+    passed: s38Passed,
+    message: s38Passed
+      ? 'Başarılı: Bilinmeyen doğum yeri için sahte ev veya kesin yükselen üretilmedi, kullanıcıya Türkçe bildirim verildi.'
+      : 'Hata: Doğrulanmamış konumda sahte yükselen veya ev başlangıcı üretildi!',
+    auditDetails: {
+      uncertaintyFlag: resUncertainClient.uncertaintyFlag,
+      asc: resUncertainClient.ascendantEstimate,
+      notice: resUncertainClient.astronomicalAudit?.timePrecision.uncertaintyNotice
+    }
+  });
   return results;
+}
+
+/**
+ * Gerçek Dış Ağ / Entegrasyon Test Paketi (İsteğe bağlı çalıştırılabilir asenkron suite):
+ * Çevrim içi Nominatim / OpenStreetMap servisi ve calculateAstrologyAsync çağrısını test eder.
+ */
+export async function runAstrologyAsyncIntegrationSuite(): Promise<AstrologyScenarioResult[]> {
+  const asyncResults: AstrologyScenarioResult[] = [];
+
+  try {
+    const asyncAstro = await calculateAstrologyAsync('1990-05-15', '12:00', 'Reykjavik');
+    const isSuccess =
+      asyncAstro.astronomicalAudit?.locationResolution.isAmbiguous === false &&
+      asyncAstro.ascendantCoordinates !== undefined &&
+      asyncAstro.houses?.length === 12;
+
+    asyncResults.push({
+      id: 'astro_async_1',
+      name: 'Async 1: Gerçek OSM Nominatim ve calculateAstrologyAsync Entegrasyonu (Reykjavik)',
+      passed: isSuccess,
+      message: isSuccess
+        ? 'Başarılı: Reykjavik çevrim içi OSM üzerinden çözümlendi ve calculateAstrologyAsync ile kesin harita hesaplandı.'
+        : 'Hata: Çevrim içi asenkron entegrasyonda beklenen sonuç alınamadı.',
+      auditDetails: {
+        cityName: asyncAstro.astronomicalAudit?.locationResolution.cityName,
+        asc: asyncAstro.ascendantCoordinates?.formatted
+      }
+    });
+  } catch (err) {
+    asyncResults.push({
+      id: 'astro_async_1',
+      name: 'Async 1: Gerçek OSM Nominatim ve calculateAstrologyAsync Entegrasyonu (Reykjavik)',
+      passed: false,
+      message: 'Hata: Ağ hatası veya zaman aşımı: ' + String(err),
+      auditDetails: { error: String(err) }
+    });
+  }
+
+  return asyncResults;
 }

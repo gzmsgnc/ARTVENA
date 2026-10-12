@@ -27,6 +27,7 @@ import {
 import * as Astronomy from 'astronomy-engine';
 import {
   resolveCityCoordinates,
+  resolveOnlineCityCoordinates,
   getHistoricalTimezoneOffset,
   ResolvedLocation
 } from '../data/geoTimezoneData';
@@ -671,6 +672,7 @@ export function validateDateString(dateStr: string): {
 export interface AstrologyCalculationOptions {
   zodiacSystem?: 'Tropikal Zodyak (Tropical)';
   houseSystem?: 'Placidus' | 'Whole Sign' | 'Equal';
+  resolvedLocation?: ResolvedLocation;
 }
 
 export function calculateAstrology(
@@ -691,8 +693,10 @@ export function calculateAstrology(
   const month = isValidDate ? dateValidation.month : 3;
   const day = isValidDate ? dateValidation.day : 21;
 
-  // 2. Konum ve Şehir Çözümlemesi
-  const location: ResolvedLocation = resolveCityCoordinates(birthPlace);
+  // 2. Konum ve Şehir Çözümlemesi:
+  // Eğer önceden doğrulanmış harici/yerel konum (resolvedLocation) iletilmişse doğrudan kullanılır;
+  // Aksi takdirde yerel veritabanı üzerinden senkron eşleme gerçekleştirilir.
+  const location: ResolvedLocation = options?.resolvedLocation || resolveCityCoordinates(birthPlace);
 
   // 3. Doğum Saati ve Tarihsel Saat Dilimi (Timezone & DST) Çözümlemesi
   let localHour = 12;
@@ -925,4 +929,25 @@ export function calculateAstrology(
     isValidBirthDate: isValidDate,
     dateValidationMessage: dateValidation.errorMessage
   };
+}
+
+/**
+ * Asenkron Astroloji Hesaplama Motoru (Çevrim içi Geocoding Entegrasyonu):
+ * Doğum yeri yerel veritabanında bulunamadığında harici OSM Nominatim servisini sorgular,
+ * doğrulanmış koordinatlar ve IANA saat dilimiyle kesin hesaplamayı tamamlar.
+ */
+export async function calculateAstrologyAsync(
+  birthDate: string,
+  birthTime?: string,
+  birthPlace?: string,
+  options?: AstrologyCalculationOptions
+): Promise<AstrologyResult> {
+  let finalLocation = options?.resolvedLocation;
+  if (!finalLocation && birthPlace && birthPlace.trim().length > 0) {
+    finalLocation = await resolveOnlineCityCoordinates(birthPlace);
+  }
+  return calculateAstrology(birthDate, birthTime, birthPlace, {
+    ...options,
+    resolvedLocation: finalLocation
+  });
 }

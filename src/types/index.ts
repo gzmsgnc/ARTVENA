@@ -15,6 +15,7 @@ export interface ClientData {
   notes: string;
   preferredAstrologySystem?: 'Tropikal Zodyak (Tropical)';
   preferredHouseSystem?: 'Placidus' | 'Whole Sign' | 'Equal';
+  resolvedLocation?: any;
   createdAt: string;
   updatedAt: string;
 }

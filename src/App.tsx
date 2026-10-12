@@ -333,7 +333,8 @@ export default function App() {
       newClientData.birthPlace,
       {
         zodiacSystem: newClientData.preferredAstrologySystem,
-        houseSystem: newClientData.preferredHouseSystem
+        houseSystem: newClientData.preferredHouseSystem,
+        resolvedLocation: (newClientData as any).resolvedLocation
       }
     );
     const ebc = calculateEbced(`${newClientData.firstName} ${newClientData.lastName}`, newClientData.motherName);

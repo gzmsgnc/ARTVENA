@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:astrology": "tsx -e \"import { runAstrologyVerificationSuite } from './src/services/astrologyVerificationSuite'; const r = runAstrologyVerificationSuite(); console.log('Astrology Tests: Passed ' + r.filter(x => x.passed).length + '/' + r.length); if (r.some(x => !x.passed)) process.exit(1);\""
+    "test:astrology": "tsx -e \"import { runAstrologyVerificationSuite } from './src/services/astrologyVerificationSuite'; const r = runAstrologyVerificationSuite(); console.log('Astrology Tests: Passed ' + r.filter(x => x.passed).length + '/' + r.length); if (r.some(x => !x.passed)) process.exit(1);\"",
+    "test:astrology:integration": "tsx -e \"import { runAstrologyAsyncIntegrationSuite } from './src/services/astrologyVerificationSuite'; runAstrologyAsyncIntegrationSuite().then(r => { console.log('Async Integration Tests: Passed ' + r.filter(x => x.passed).length + '/' + r.length); if (r.some(x => !x.passed)) process.exit(1); });\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

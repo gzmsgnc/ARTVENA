@@ -1330,12 +1330,81 @@ export interface OnlineGeocodeResult {
  * - Çevrimdışı ve Hata Yönetimi: Ağ bağlantısı yoksa, zaman aşımına (timeout) uğrarsa veya API yanıt vermezse
  *   sessizce sahte koordinat uydurmaz; yerel güvenilir veritabanına ve belirsizlik protokolüne güvenle döner.
  */
+/**
+ * Verilen koordinat ve ülke için en uygun IANA saat dilimini belirler.
+ * CITIES_DB üzerindeki küresel coğrafi referansları ve bilinen ülke haritalarını kullanır.
+ */
+export function lookupIanaTimeZoneForCoordinates(
+  lat: number,
+  lng: number,
+  countryCode?: string
+): { timeZone: string; defaultTzOffset: number } {
+  // 1. Ülke kodu Türkiye ise doğrudan kalıcı UTC+3
+  if (countryCode === 'TR') {
+    return { timeZone: 'Europe/Istanbul', defaultTzOffset: 3 };
+  }
+
+  // 2. Ülke kodu eşleşen en yakın şehir
+  let closestDist = Infinity;
+  let bestCity: CityGeoInfo | null = null;
+
+  if (countryCode) {
+    const normCC = countryCode.toUpperCase();
+    for (const c of Object.values(CITIES_DB)) {
+      if (c.country === normCC) {
+        const dLat = c.lat - lat;
+        const dLng = c.lng - lng;
+        const dist = dLat * dLat + dLng * dLng;
+        if (dist < closestDist) {
+          closestDist = dist;
+          bestCity = c;
+        }
+      }
+    }
+  }
+
+  // 3. Aynı ülkeden referans bulunamadıysa dünya genelinde en yakın referans nokta
+  if (!bestCity) {
+    closestDist = Infinity;
+    for (const c of Object.values(CITIES_DB)) {
+      const dLat = c.lat - lat;
+      const dLng = c.lng - lng;
+      const dist = dLat * dLat + dLng * dLng;
+      if (dist < closestDist) {
+        closestDist = dist;
+        bestCity = c;
+      }
+    }
+  }
+
+  if (bestCity) {
+    return {
+      timeZone: bestCity.timeZone,
+      defaultTzOffset: bestCity.defaultTzOffset
+    };
+  }
+
+  return { timeZone: 'UTC', defaultTzOffset: 0 };
+}
+
+// In-Memory Geocoding Request Cache (Aynı arama için tekrarlı ağ isteklerini engeller)
+const ONLINE_GEOCODE_CACHE = new Map<string, ResolvedLocation>();
+
+export function clearOnlineGeocodeCache(): void {
+  ONLINE_GEOCODE_CACHE.clear();
+}
+
 export async function resolveOnlineCityCoordinates(
   query: string,
   timeoutMs: number = 3000
 ): Promise<ResolvedLocation> {
   if (!query || typeof query !== 'string' || query.trim().length === 0) {
     return resolveCityCoordinates('');
+  }
+
+  const cacheKey = query.trim().toLowerCase();
+  if (ONLINE_GEOCODE_CACHE.has(cacheKey)) {
+    return ONLINE_GEOCODE_CACHE.get(cacheKey)!;
   }
 
   // 1. Önce yerel yüksek doğruluklu veritabanında ara
@@ -1380,11 +1449,9 @@ export async function resolveOnlineCityCoordinates(
     const countryName = item.address?.country || 'Bilinmeyen Ülke';
     const resolvedName = item.display_name?.split(',')[0] || query;
 
-    // Yaklaşık IANA saat dilimi tahmini (Doğrulama ve yerel Intl saat motoru için)
-    // Standart boylam bazlı referans hesaplama:
-    const approxTzOffsetHours = Math.round((lon * 4) / 60);
+    const tzLookup = lookupIanaTimeZoneForCoordinates(lat, lon, countryCode);
 
-    return {
+    const resolved: ResolvedLocation = {
       inputName: query,
       matchedKey: `osm_${item.osm_id || 'result'}`,
       cityName: `${resolvedName} (OSM Doğrulandı)`,
@@ -1393,12 +1460,15 @@ export async function resolveOnlineCityCoordinates(
       region: item.address?.state || item.address?.province || '',
       latitude: lat,
       longitude: lon,
-      timeZone: 'UTC', // IANA ID bulunamayan harici koordinatlarda UTC bazlı hesaplanır
-      defaultTzOffset: approxTzOffsetHours,
+      timeZone: tzLookup.timeZone,
+      defaultTzOffset: tzLookup.defaultTzOffset,
       confidence: 'exact_city',
       isAmbiguous: false,
-      notes: `Konum OpenStreetMap Nominatim servisi ile başarıyla doğrulandı: ${item.display_name}`
+      notes: `Konum OpenStreetMap Nominatim servisi ile doğrulandı (IANA: ${tzLookup.timeZone}): ${item.display_name}`
     };
+
+    ONLINE_GEOCODE_CACHE.set(cacheKey, resolved);
+    return resolved;
   } catch (err) {
     clearTimeout(timer);
     // Ağ kesintisi, zaman aşımı veya güvenlik duvarı durumunda:
